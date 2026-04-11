@@ -8,6 +8,9 @@
 	"files": {
 		"ignoreUnknown": false
 	},
+	"organizeImports": {
+		"enabled": true
+	},
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab"
@@ -21,14 +24,6 @@
 	"javascript": {
 		"formatter": {
 			"quoteStyle": "double"
-		}
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
 		}
 	}
 }

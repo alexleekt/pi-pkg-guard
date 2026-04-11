@@ -183,7 +183,7 @@ describe("analyzePackages - EDGE CASES", () => {
 	});
 
 	it("should handle very long package names", () => {
-		const longName = "pi-" + "a".repeat(200);
+		const longName = `pi-${"a".repeat(200)}`;
 		const npm = [longName];
 		const registered: string[] = [];
 		const result = analyzePackages(npm, registered);
@@ -277,7 +277,7 @@ describe("syncOrphanedPackages - EDGE CASES", () => {
 	});
 
 	it("should handle very long package names", () => {
-		const longName = "pi-" + "a".repeat(200);
+		const longName = `pi-${"a".repeat(200)}`;
 		const orphaned = [longName];
 		const existing: string[] = [];
 		const result = syncOrphanedPackages(orphaned, existing);
