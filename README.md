@@ -43,7 +43,7 @@ npm install -g pi-pkg-guard
 
 ```bash
 # Clone the repository
-git clone https://github.com/alexleekt/pi-pkg-guard.git
+git clone https://github.com/alexleekt/pi-extensions.git
 
 # Symlink to pi extensions directory
 ln -s $(pwd)/pi-pkg-guard ~/.pi/agent/extensions/pi-pkg-guard
@@ -114,7 +114,7 @@ When a tool attempts `npm install -g pi-*`, you'll see:
 
 ```bash
 # Clone
-git clone https://github.com/alexleekt/pi-pkg-guard.git
+git clone https://github.com/alexleekt/pi-extensions.git
 cd pi-pkg-guard
 
 # Install dependencies
@@ -138,7 +138,7 @@ See all available tasks: `just --list`
 
 ```bash
 # Clone
-git clone https://github.com/alexleekt/pi-pkg-guard.git
+git clone https://github.com/alexleekt/pi-extensions.git
 cd pi-pkg-guard
 
 # Link for development
@@ -155,4 +155,4 @@ MIT © Alex Lee
 
 ## Contributing
 
-Issues and PRs welcome at [github.com/alexleekt/pi-pkg-guard](https://github.com/alexleekt/pi-pkg-guard)
+Issues and PRs welcome at [github.com/alexleekt/pi-extensions](https://github.com/alexleekt/pi-extensions)
