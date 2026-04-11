@@ -7,11 +7,11 @@
 	"author": "Alex Lee <657215+alexleekt@users.noreply.github.com>",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/alexleekt/pi-extensions.git"
+		"url": "git+https://github.com/alexleekt/pi-pkg-guard.git"
 	},
-	"homepage": "https://github.com/alexleekt/pi-extensions#readme",
+	"homepage": "https://github.com/alexleekt/pi-pkg-guard#readme",
 	"bugs": {
-		"url": "https://github.com/alexleekt/pi-extensions/issues"
+		"url": "https://github.com/alexleekt/pi-pkg-guard/issues"
 	},
 	"keywords": [
 		"pi-package",

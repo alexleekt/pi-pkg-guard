@@ -27,5 +27,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-extensions/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/alexleekt/pi-extensions/releases/tag/v0.1.0
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.0
