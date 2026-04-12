@@ -33,11 +33,27 @@ interface PiSettings {
 // =============================================================================
 
 function isPiSettings(value: unknown): value is PiSettings {
-	return typeof value === "object" && value !== null;
+	if (typeof value !== "object" || value === null) return false;
+	if (Array.isArray(value)) return false;
+	const candidate = value as Record<string, unknown>;
+
+	if (candidate.packages !== undefined) {
+		if (!Array.isArray(candidate.packages)) return false;
+		if (!candidate.packages.every((p) => typeof p === "string")) return false;
+	}
+
+	if (candidate.extensions !== undefined) {
+		if (!Array.isArray(candidate.extensions)) return false;
+		if (!candidate.extensions.every((e) => typeof e === "string")) return false;
+	}
+
+	return true;
 }
 
 function isBashToolInput(input: unknown): input is { command?: string } {
-	return typeof input === "object" && input !== null;
+	if (typeof input !== "object" || input === null) return false;
+	if (Array.isArray(input)) return false;
+	return true;
 }
 
 // =============================================================================
