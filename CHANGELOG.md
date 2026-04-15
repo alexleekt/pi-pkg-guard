@@ -7,14 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-15
+
+### Added
+
+- **Enhanced package detection**: Added support for `*-pi` suffix packages (e.g., `lsp-pi`)
+- **Keyword validation**: Packages are now validated via `package.json` keywords (`pi-coding-agent`, `pi-extension`, `pi-package`) to filter out non-pi packages
+- Improved scoped package detection for packages ending with `-pi`
+
 ### Fixed
 
-- Enhanced `isPiSettings()` type guard to validate `packages` and `extensions` arrays contain only strings
-- Enhanced `isBashToolInput()` type guard to properly reject arrays
-- Fixed GitHub repository URLs to point to correct `alexleekt/pi-pkg-guard` location
-- Fixed biome.json configuration and template literal formatting
-
-## [0.1.1] - 2026-04-12
+- Removed duplicate `pi-extension` from `PI_KEYWORDS` constant
+- Updated README documentation to reflect new detection patterns
 
 ## [0.1.0] - 2026-04-11
 
@@ -36,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.2.0
 [0.1.1]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.1
 [0.1.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.0

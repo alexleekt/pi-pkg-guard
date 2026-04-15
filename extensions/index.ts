@@ -13,6 +13,13 @@ const STATUS_KEY = "ext:pi-pkg-guard:v1";
 const CORE_PACKAGE = "@mariozechner/pi-coding-agent";
 const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 const STATUS_CLEAR_DELAY_MS = 3000;
+// NPM package detection patterns
+// - Starts with 'pi-' (e.g., pi-foo, pi-extmgr)
+// - Ends with '-pi' (e.g., lsp-pi)
+// - Contains '/pi-' in scope (e.g., @scope/pi-foo)
+const PI_NAME_PATTERN = /(^pi-|-pi$|\/pi-)/;
+// Keywords that indicate a package is a pi extension
+const PI_KEYWORDS = ["pi-coding-agent", "pi-extension", "pi-package"];
 
 // =============================================================================
 // Types
@@ -64,6 +71,27 @@ function isBashToolInput(input: unknown): input is { command?: string } {
  * Get list of pi-* packages installed globally via npm.
  * Returns empty array on error (non-critical operation).
  */
+/**
+ * Check if a package has pi-extension keywords in its package.json.
+ * Reads local package.json - no network access required.
+ * Returns true if keywords include any PI_KEYWORDS.
+ */
+function hasPiExtensionKeyword(
+	nodeModulesPath: string,
+	packageName: string,
+): boolean {
+	try {
+		const pkgJsonPath = `${nodeModulesPath}/${packageName}/package.json`;
+		const content = readFileSync(pkgJsonPath, "utf-8");
+		const pkg = JSON.parse(content) as { keywords?: string[] };
+		const keywords = pkg.keywords || [];
+		return keywords.some((kw) => PI_KEYWORDS.includes(kw));
+	} catch {
+		// If we can't read package.json, fall back to name-only detection
+		return true;
+	}
+}
+
 function getNpmGlobalPackages(): string[] {
 	try {
 		const output = execSync("npm list -g --json --depth=0", {
@@ -77,10 +105,21 @@ function getNpmGlobalPackages(): string[] {
 		};
 		const deps = parsed.dependencies || {};
 
+		// Get global prefix for reading package.json files
+		const globalPrefix = execSync("npm prefix -g", {
+			encoding: "utf-8",
+			timeout: 5000,
+		}).trim();
+		const nodeModulesPath = `${globalPrefix}/lib/node_modules`;
+
 		return Object.keys(deps).filter(
 			(name) =>
-				(name.startsWith("pi-") || name.includes("/pi-")) &&
-				name !== CORE_PACKAGE,
+				// Match name patterns: pi-*, *-pi, @scope/pi-*
+				PI_NAME_PATTERN.test(name) &&
+				// Exclude core package
+				name !== CORE_PACKAGE &&
+				// Validate via package.json keywords (local read, no network)
+				hasPiExtensionKeyword(nodeModulesPath, name),
 		);
 	} catch {
 		// Silently fail - this is a non-critical operation
@@ -186,8 +225,10 @@ function syncOrphanedPackages(diff: PackageDiff): void {
 // =============================================================================
 
 // Detect npm install with -g or --global and a pi-* package
-const NPM_GLOBAL_PATTERN = /npm\s+(install|i)\s+.*(-g|--global)/;
-const PI_PACKAGE_PATTERN = /pi-[\w-]+/;
+const NPM_GLOBAL_PATTERN = /npm\s+(?:install|i)(?:\s+\S+)*\s+(?:-g|--global)\b/;
+// Matches: pi-foo (start), lsp-pi (end), @scope/pi-foo (scoped), @scope/lsp-pi (scoped with suffix)
+const PI_PACKAGE_PATTERN =
+	/(?:^|\s|\/)pi-[a-z0-9-]+|(?:^|\s|\/)[a-z0-9-]+-pi(?:\s|$|@)/;
 
 /**
  * Check if a bash command is a global npm install of a pi package.
@@ -205,7 +246,17 @@ function isGlobalPiInstall(command: string): {
 		return { isMatch: false };
 	}
 
-	return { isMatch: true, packageName: match[0] };
+	// Clean up the match - remove leading/trailing spaces and slashes
+	let packageName = match[0].trim();
+	if (packageName.startsWith("/")) {
+		packageName = packageName.slice(1);
+	}
+	// For scoped packages, extract just the package name (after the last /)
+	if (packageName.includes("/")) {
+		packageName = packageName.split("/").pop() || packageName;
+	}
+
+	return { isMatch: true, packageName };
 }
 
 // =============================================================================

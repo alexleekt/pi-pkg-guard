@@ -88,10 +88,14 @@ When a tool attempts `npm install -g pi-*`, you'll see:
 
 ## How It Works
 
-1. **Detects** packages starting with `pi-` or scoped packages containing `/pi-`
-2. **Compares** npm global packages against `settings.json` registered packages
-3. **Normalizes** both `pi-foo` and `npm:pi-foo` formats
-4. **Excludes** the core package `@mariozechner/pi-coding-agent`
+1. **Detects** packages matching patterns:
+   - `pi-*` prefix (e.g., `pi-foo`)
+   - `*-pi` suffix (e.g., `lsp-pi`) 
+   - `@scope/pi-*` scoped packages (e.g., `@scope/pi-foo`)
+2. **Validates** via `package.json` keywords (`pi-coding-agent`, `pi-extension`, `pi-package`)
+3. **Compares** npm global packages against `settings.json` registered packages
+4. **Normalizes** both `pi-foo` and `npm:pi-foo` formats
+5. **Excludes** the core package `@mariozechner/pi-coding-agent`
 
 ## Compatibility
 
@@ -135,19 +139,6 @@ pi
 ```
 
 See all available tasks: `just --list`
-
-```bash
-# Clone
-git clone https://github.com/alexleekt/pi-pkg-guard.git
-cd pi-pkg-guard
-
-# Link for development
-ln -s $(pwd) ~/.pi/agent/extensions/pi-pkg-guard
-
-# Test in pi
-pi
-# Then /reload
-```
 
 ## License
 

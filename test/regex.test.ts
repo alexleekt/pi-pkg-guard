@@ -4,8 +4,13 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 
 // Regex patterns (from extensions/index.ts)
+// - Starts with 'pi-' (e.g., pi-foo, pi-extmgr)
+// - Ends with '-pi' (e.g., lsp-pi)
+// - Contains '/pi-' in scope (e.g., @scope/pi-foo)
 const NPM_GLOBAL_PATTERN = /npm\s+(?:install|i)(?:\s+\S+)*\s+(?:-g|--global)\b/;
-const PI_PACKAGE_PATTERN = /\bpi-[a-z0-9-]+\b/;
+// Matches: pi-foo (start), lsp-pi (end), @scope/pi-foo (scoped), @scope/lsp-pi (scoped with suffix)
+const PI_PACKAGE_PATTERN =
+	/(?:^|\s|\/)pi-[a-z0-9-]+|(?:^|\s|\/)[a-z0-9-]+-pi(?:\s|$|@)/;
 
 function isGlobalPiInstall(command: string): {
 	isMatch: boolean;
@@ -20,7 +25,17 @@ function isGlobalPiInstall(command: string): {
 		return { isMatch: false };
 	}
 
-	return { isMatch: true, packageName: match[0] };
+	// Clean up the match - remove leading/trailing spaces and slashes
+	let packageName = match[0].trim();
+	if (packageName.startsWith("/")) {
+		packageName = packageName.slice(1);
+	}
+	// For scoped packages, extract just the package name (after the last /)
+	if (packageName.includes("/")) {
+		packageName = packageName.split("/").pop() || packageName;
+	}
+
+	return { isMatch: true, packageName };
 }
 
 describe("isGlobalPiInstall - GOOD CASES (should detect)", () => {
@@ -77,6 +92,24 @@ describe("isGlobalPiInstall - GOOD CASES (should detect)", () => {
 		const result = isGlobalPiInstall("npm install -g pi-foo@1.0.0");
 		assert.strictEqual(result.isMatch, true);
 		assert.strictEqual(result.packageName, "pi-foo");
+	});
+
+	it("should detect packages ending with '-pi' like 'lsp-pi'", () => {
+		const result = isGlobalPiInstall("npm install -g lsp-pi");
+		assert.strictEqual(result.isMatch, true);
+		assert.strictEqual(result.packageName, "lsp-pi");
+	});
+
+	it("should detect scoped package ending with '-pi' like '@org/lsp-pi'", () => {
+		const result = isGlobalPiInstall("npm install -g @org/lsp-pi");
+		assert.strictEqual(result.isMatch, true);
+		assert.strictEqual(result.packageName, "lsp-pi");
+	});
+
+	it("should detect '-pi' suffix when -g flag is at end", () => {
+		const result = isGlobalPiInstall("npm install lsp-pi -g");
+		assert.strictEqual(result.isMatch, true);
+		assert.strictEqual(result.packageName, "lsp-pi");
 	});
 });
 
@@ -169,12 +202,10 @@ describe("isGlobalPiInstall - EDGE CASES", () => {
 		assert.strictEqual(result.isMatch, false);
 	});
 
-	it("should detect 'npm install -g my-pi-foo'", () => {
-		// This WILL detect because \b matches at start of word
-		// and "pi-foo" is a valid pattern within the word
+	it("should NOT detect 'npm install -g my-pi-foo' (pi- inside word)", () => {
+		// New pattern is stricter: only matches pi- at start, -pi at end, or /pi- in scope
 		const result = isGlobalPiInstall("npm install -g my-pi-foo");
-		assert.strictEqual(result.isMatch, true);
-		assert.strictEqual(result.packageName, "pi-foo");
+		assert.strictEqual(result.isMatch, false);
 	});
 
 	it("should handle multiple -g flags 'npm install -g pi-foo -g'", () => {
@@ -259,9 +290,9 @@ describe("Regex pattern unit tests", () => {
 			assert.strictEqual(PI_PACKAGE_PATTERN.test("api-foo"), false);
 		});
 
-		it("should match 'my-pi-foo' (within word)", () => {
-			// \b matches at start of 'pi' within the word
-			assert.strictEqual(PI_PACKAGE_PATTERN.test("my-pi-foo"), true);
+		it("should NOT match 'my-pi-foo' (pi- inside word, not at start/end/scope)", () => {
+			// New pattern only matches pi- at start, -pi at end, or /pi- in scope
+			assert.strictEqual(PI_PACKAGE_PATTERN.test("my-pi-foo"), false);
 		});
 	});
 });
