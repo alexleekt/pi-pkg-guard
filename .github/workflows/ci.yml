@@ -26,7 +26,7 @@ jobs:
         run: npx @biomejs/biome check .
 
       - name: Run tests
-        run: node --test "test/**/*.test.ts"
+        run: node --test test/analysis.test.ts test/guards.test.ts test/regex.test.ts
 
       - name: Type check
         run: npx tsc --noEmit --skipLibCheck
