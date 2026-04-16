@@ -6,7 +6,7 @@ default:
     @just --list
 
 # Run all checks (format, lint, test, typecheck)
-check: format lint test typecheck
+check: format lint test typecheck lint-actions
     @echo "✅ All checks passed!"
 
 # Check code with biome (no fixes)
@@ -24,6 +24,15 @@ format:
 # Lint code with biome
 lint:
     npx @biomejs/biome lint .
+
+# Lint GitHub Actions workflows (requires actionlint: brew install actionlint)
+lint-actions:
+    #!/usr/bin/env bash
+    if ! command -v actionlint >/dev/null 2>&1; then
+        echo "⚠️  actionlint not installed. Install with: brew install actionlint"
+        exit 1
+    fi
+    actionlint .github/workflows/*.yml
 
 # Run all tests
 test:
@@ -54,7 +63,7 @@ publish:
     npm publish --access public
 
 # CI recipe - runs in CI/CD pipelines (no watch mode)
-ci: check-only test typecheck
+ci: check-only test typecheck lint-actions
 
 
 # Release a new version (triggers GitHub Actions publish)
@@ -107,3 +116,18 @@ release-notes version="":
     @echo ""
     @echo "ℹ️  Note: release-notes is now an alias for 'just release'"
     @echo "   GitHub Releases are created automatically by the workflow."
+
+# Setup git hooks for pre-commit/pre-push checks
+setup-hooks:
+    #!/usr/bin/env bash
+    set -e
+    echo "🔧 Installing git hooks..."
+    cp .githooks/pre-commit .git/hooks/pre-commit
+    chmod +x .git/hooks/pre-commit
+    echo "✅ pre-commit hook installed (runs: just ci)"
+    echo ""
+    cp .githooks/pre-push .git/hooks/pre-push
+    chmod +x .git/hooks/pre-push
+    echo "✅ pre-push hook installed (runs: just check)"
+    echo ""
+    echo "Hooks are now active! To disable temporarily, use --no-verify flag:"
