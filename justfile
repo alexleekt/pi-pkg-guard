@@ -79,11 +79,13 @@ release version="":
     fi
     
     # Check if tag already exists
+    if git rev-parse "v$VERSION" >/dev/null 2>&1; then
         echo "❌ Error: Tag v$VERSION already exists"
         echo "   Use: git tag -d v$VERSION  # to delete locally"
         echo "   Then: git push --delete origin v$VERSION  # to delete remotely"
         exit 1
     fi
+    
     
     echo "🏷️  Creating release v$VERSION..."
     git tag -a "v$VERSION" -m "Release v$VERSION"
