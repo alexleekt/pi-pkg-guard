@@ -140,6 +140,68 @@ pi
 
 See all available tasks: `just --list`
 
+## Releasing
+
+This project uses **GitHub Actions** with **Trusted Publishing** (OIDC) - the modern, secure way to publish to npm without long-lived tokens.
+
+### Setup (One-Time)
+
+**Configure Trusted Publisher on npm:**
+
+1. Go to [npmjs.com/package/pi-pkg-guard](https://www.npmjs.com/package/pi-pkg-guard) → "Publish Settings" or "Access"
+2. Click "Add Trusted Publisher"
+3. Configure:
+   - **Provider**: GitHub Actions
+   - **Owner**: `alexleekt`
+   - **Repository**: `pi-pkg-guard`
+   - **Workflow**: `publish.yml` (or leave as `*` for any workflow)
+   - **Environment**: (optional) leave empty or set to `production`
+
+**How it works:**
+- No `NPM_TOKEN` secret needed in GitHub
+- GitHub Actions authenticates via OIDC directly with npm
+- Short-lived tokens are generated automatically for each publish
+- More secure than long-lived API tokens
+
+### Creating a Release
+
+**Option 1: Using just (Recommended)**
+
+```bash
+just release 0.3.0
+```
+
+This creates and pushes a git tag, which triggers the publish workflow.
+
+**Option 2: Manual**
+
+```bash
+git tag -a v0.3.0 -m "Release v0.3.0"
+git push origin v0.3.0
+```
+
+**Option 3: GitHub UI**
+
+1. Go to [Releases](https://github.com/alexleekt/pi-pkg-guard/releases)
+2. Click "Draft a new release"
+3. Create a new tag (e.g., `v0.3.0`)
+4. Click "Publish release"
+
+### What Happens Next
+
+GitHub Actions automatically:
+1. ✅ Runs all checks (biome, tests, typecheck)
+2. ✅ Publishes to npm with **provenance** (links package to GitHub source)
+
+Monitor at: [Actions tab](https://github.com/alexleekt/pi-pkg-guard/actions)
+
+### Fallback: Token-Based Publishing
+
+If Trusted Publishing isn't available for your npm plan, you can use a classic token:
+1. Create an **automation token** at [npmjs.com/settings/tokens](https://www.npmjs.com/settings/tokens)
+2. Add it to GitHub Secrets as `NPM_TOKEN`
+3. Uncomment the `NODE_AUTH_TOKEN` line in `.github/workflows/publish.yml`
+
 ## License
 
 MIT © Alex Lee

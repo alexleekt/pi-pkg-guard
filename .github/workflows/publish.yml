@@ -1,0 +1,52 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (leave empty to use package.json version)"
+        required: false
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for npm trusted publishing (OIDC)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: |
+          npx @biomejs/biome check .
+          node --test test/**/*.test.ts
+          npx tsc --noEmit --skipLibCheck
+
+      - name: Bump version (if specified)
+        if: github.event.inputs.version != ''
+        run: |
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to ${{ github.event.inputs.version }}"
+          git push
+
+      - name: Publish to npm with provenance
+        # Trusted Publishing: Uses OIDC instead of long-lived token
+        # Must configure package on npmjs.com first (see README)
+        run: npm publish --provenance --access public

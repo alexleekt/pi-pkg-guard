@@ -147,17 +147,51 @@ function readPiSettings(): PiSettings {
 
 ## Release Process
 
+### Automated CI/CD (Recommended)
+
+This project uses **GitHub Actions with Trusted Publishing** (OIDC-based) for automated npm publishing:
+
+**Setup (One-Time):**
+1. Go to npm package page → "Publish Settings" → "Add Trusted Publisher"
+2. Configure: Provider=GitHub Actions, Owner=`alexleekt`, Repository=`pi-pkg-guard`, Workflow=`publish.yml`
+3. No `NPM_TOKEN` secret needed - OIDC handles authentication
+
+**Benefits of Trusted Publishing:**
+- No long-lived tokens to manage or rotate
+- Each publish uses short-lived OIDC tokens
+- More secure than classic API tokens
+- Works with provenance attestation
+
+**Creating a Release:**
+```bash
+# Using just (recommended)
+just release 0.3.0
+
+# Or manually
+git tag -a v0.3.0 -m "Release v0.3.0"
+git push origin v0.3.0
+```
+
+**What happens automatically:**
+- GitHub Actions runs all checks (biome, tests, typecheck)
+- Publishes to npm with provenance
+- Links package to GitHub source for security
+
+Monitor at: https://github.com/alexleekt/pi-pkg-guard/actions
+
+**Fallback:** If Trusted Publishing isn't available, use classic token-based auth by adding `NPM_TOKEN` secret and uncommenting `NODE_AUTH_TOKEN` in publish.yml.
+
 ### Version Bump Checklist
 
 When preparing a release:
 
 1. Update version in `package.json`
 2. Add entry to `CHANGELOG.md`
-3. Run full test suite
+3. Run full test suite: `just check`
 4. Run `npm publish --dry-run` to verify package contents
-5. Tag release on GitHub after publishing
+5. Create and push git tag to trigger publish workflow
 
-### NPM Publishing
+### NPM Publishing (Legacy Manual Method)
 
 ```bash
 # Verify before publishing
@@ -166,13 +200,6 @@ npm publish --dry-run
 # Publish to npm
 npm publish --access public
 ```
-
-### Post-Publication
-
-1. Create GitHub release with notes
-2. Verify installation works: `pi install npm:pi-pkg-guard`
-3. Monitor for issues
-
 ---
 
 ## Security Considerations
