@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed duplicate `pi-extension` from `PI_KEYWORDS` constant
 - Updated README documentation to reflect new detection patterns
 
+## [0.1.1] - 2026-04-12
+
+### Fixed
+
+- Improved type guard validation with better indentation
+- Fixed repository name references
+
 ## [0.1.0] - 2026-04-11
 
 ### Added
@@ -55,7 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
 [Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.0...HEAD
-[0.3.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.3.0
-[0.2.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.2.0
-[0.1.1]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.1
+[0.3.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.0
