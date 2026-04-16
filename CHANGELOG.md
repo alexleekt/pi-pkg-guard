@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-16
+
+### Added
+
+- **Automated CI/CD**: GitHub Actions workflows for testing and publishing
+- **Trusted Publishing**: OIDC-based npm authentication (no long-lived tokens needed)
+- **Auto-release**: Pushing a git tag automatically creates GitHub Release and publishes to npm
+- **Provenance**: Packages now publish with attestation linking to GitHub source
+
+### Changed
+
+- Simplified release process: `just release` now auto-detects version from package.json
+- Updated documentation with Trusted Publishing setup instructions
+
 ## [0.2.0] - 2026-04-15
 
 ### Added
@@ -40,7 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.3.0
 [0.2.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.2.0
 [0.1.1]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.1
 [0.1.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.0
