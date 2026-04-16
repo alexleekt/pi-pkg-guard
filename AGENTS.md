@@ -164,18 +164,24 @@ This project uses **GitHub Actions with Trusted Publishing** (OIDC-based) for au
 
 **Creating a Release:**
 ```bash
-# Using just (recommended)
+# Using just (recommended) - auto-detects version from package.json
+just release
+
+# Or specify version explicitly
 just release 0.3.0
 
-# Or manually
+# Or manually create tag
 git tag -a v0.3.0 -m "Release v0.3.0"
 git push origin v0.3.0
 ```
 
 **What happens automatically:**
-- GitHub Actions runs all checks (biome, tests, typecheck)
-- Publishes to npm with provenance
-- Links package to GitHub source for security
+1. GitHub Actions runs all checks (biome, tests, typecheck)
+2. Publishes to npm with provenance
+3. Creates GitHub Release with auto-generated notes
+4. Links package to GitHub source for security
+
+**Note:** Manual GitHub Release creation is not needed - it's automated when you push the tag.
 
 Monitor at: https://github.com/alexleekt/pi-pkg-guard/actions
 

@@ -168,6 +168,10 @@ This project uses **GitHub Actions** with **Trusted Publishing** (OIDC) - the mo
 **Option 1: Using just (Recommended)**
 
 ```bash
+# Auto-detect version from package.json
+just release
+
+# Or specify version explicitly
 just release 0.3.0
 ```
 
@@ -180,20 +184,16 @@ git tag -a v0.3.0 -m "Release v0.3.0"
 git push origin v0.3.0
 ```
 
-**Option 3: GitHub UI**
+### What Happens Automatically
 
-1. Go to [Releases](https://github.com/alexleekt/pi-pkg-guard/releases)
-2. Click "Draft a new release"
-3. Create a new tag (e.g., `v0.3.0`)
-4. Click "Publish release"
-
-### What Happens Next
-
-GitHub Actions automatically:
-1. ✅ Runs all checks (biome, tests, typecheck)
-2. ✅ Publishes to npm with **provenance** (links package to GitHub source)
+GitHub Actions will:
+1. ✅ Run all checks (biome, tests, typecheck)
+2. ✅ Publish to npm with **provenance** (links package to GitHub source)
+3. ✅ Create GitHub Release with auto-generated notes
 
 Monitor at: [Actions tab](https://github.com/alexleekt/pi-pkg-guard/actions)
+
+**Note:** You don't need to manually create a GitHub Release - it's done automatically when you push the tag.
 
 ### Fallback: Token-Based Publishing
 

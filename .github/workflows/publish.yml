@@ -1,8 +1,9 @@
 name: Publish to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
@@ -14,8 +15,8 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      id-token: write # Required for npm trusted publishing (OIDC)
+      contents: write  # Required to create GitHub releases
+      id-token: write  # Required for npm trusted publishing (OIDC)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,3 +51,12 @@ jobs:
         # Trusted Publishing: Uses OIDC instead of long-lived token
         # Must configure package on npmjs.com first (see README)
         run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
