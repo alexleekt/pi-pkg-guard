@@ -47,9 +47,22 @@ jobs:
           git commit -m "chore: bump version to ${{ github.event.inputs.version }}"
           git push
 
+      - name: Verify npm authentication
+        run: |
+          echo "Node version: $(node --version)"
+          echo "npm version: $(npm --version)"
+          npm config get registry
+          npm whoami 2>/dev/null || echo "Not authenticated (expected with OIDC)"
+
+      - name: Clear any existing npm auth
+        run: npm logout 2>/dev/null || true
+
       - name: Publish to npm with provenance
         # Trusted Publishing: Uses OIDC instead of long-lived token
         # Must configure package on npmjs.com first (see README)
+        env:
+          # Ensure NODE_AUTH_TOKEN is not set, allowing OIDC to work
+          NODE_AUTH_TOKEN: ""
         run: npm publish --provenance --access public
 
       - name: Create GitHub Release

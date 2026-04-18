@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-04-18
+
+### Fixed
+
+- Fixed npm Trusted Publishing workflow configuration
+- Added debugging and auth clearing steps for OIDC token exchange
+
 ## [0.4.1] - 2026-04-18
 
 ### Fixed
@@ -81,7 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.2.0...v0.3.0
