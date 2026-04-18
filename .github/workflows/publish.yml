@@ -28,6 +28,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
 
+      - name: Upgrade npm for Trusted Publishing support
+        # npm versions <10 have buggy Trusted Publishing support
+        # See: https://github.com/npm/cli/issues/9088
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
