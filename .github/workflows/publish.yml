@@ -28,12 +28,18 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
 
-      - name: Enable Corepack and use latest npm
+      - name: Install npm using npx
         # Workaround for Node.js 22.22.2 broken npm toolcache
-        # See: https://github.com/actions/runner-images/issues/13883
+        # Download npm directly instead of using self-upgrade
         run: |
-          corepack enable
-          corepack prepare npm@latest --activate
+          # Download and use npm 11.x without touching the broken toolcache
+          NPM_VERSION=$(curl -s https://registry.npmjs.org/npm/latest | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
+          echo "Installing npm@$NPM_VERSION"
+          curl -sL "https://registry.npmjs.org/npm/-/npm-$NPM_VERSION.tgz" | tar xz -C /tmp
+          # Add npm binary to PATH
+          echo "/tmp/package/bin" >> $GITHUB_PATH
+          # Verify
+          /tmp/package/bin/npm --version
 
       - name: Install dependencies
         run: npm ci
