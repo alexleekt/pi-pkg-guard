@@ -11,35 +11,26 @@ on:
         required: false
         type: string
 
+# Best practices from npm docs: https://docs.npmjs.com/trusted-publishers
+permissions:
+  id-token: write # Required for OIDC Trusted Publishing
+  contents: read    # Required for checkout
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Required to create GitHub releases
-      id-token: write  # Required for npm trusted publishing (OIDC)
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # Use Node.js 24 which includes npm 11+ with full Trusted Publishing support
+      # https://docs.npmjs.com/trusted-publishers
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
-
-      - name: Install npm using npx
-        # Workaround for Node.js 22.22.2 broken npm toolcache
-        # Download npm directly instead of using self-upgrade
-        run: |
-          # Download and use npm 11.x without touching the broken toolcache
-          NPM_VERSION=$(curl -s https://registry.npmjs.org/npm/latest | grep -o '"version":"[^"]*"' | cut -d'"' -f4)
-          echo "Installing npm@${NPM_VERSION}"
-          curl -sL "https://registry.npmjs.org/npm/-/npm-${NPM_VERSION}.tgz" | tar xz -C /tmp
-          # Add npm binary to PATH
-          echo "/tmp/package/bin" >> "$GITHUB_PATH"
-          # Verify
-          /tmp/package/bin/npm --version
 
       - name: Install dependencies
         run: npm ci
@@ -60,18 +51,10 @@ jobs:
           git commit -m "chore: bump version to ${{ github.event.inputs.version }}"
           git push
 
-      - name: Verify npm authentication
-        run: |
-          echo "Node version: $(node --version)"
-          echo "npm version: $(npm --version)"
-          npm config get registry
-          npm whoami 2>/dev/null || echo "Not authenticated (expected with OIDC)"
-
-      - name: Publish to npm with provenance
-        # Trusted Publishing: Uses OIDC instead of long-lived token
-        # Must configure package on npmjs.com first (see README)
-        # setup-node handles OIDC token exchange automatically with registry-url
-        run: npm publish --provenance --access public
+      # npm automatically detects OIDC and publishes with provenance
+      # No --provenance flag needed - it's automatic with Trusted Publishing
+      - name: Publish to npm
+        run: npm publish --access public
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
