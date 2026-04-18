@@ -197,6 +197,43 @@ When preparing a release:
 4. Run `npm publish --dry-run` to verify package contents
 5. Create and push git tag to trigger publish workflow
 
+### CI/CD Debugging (Important!)
+
+**⚠️ Don't version-bump every CI fix attempt.**
+
+We made this mistake with v0.4.x - creating 10 patch releases just to debug the CI workflow. Here's what to do instead:
+
+**If CI workflow fails during release:**
+
+1. **Don't create a new version** - The code didn't change, the pipeline did
+2. **Use workflow_dispatch for testing** - Add to your workflow:
+   ```yaml
+   on:
+     push:
+       tags: ['v*']
+     workflow_dispatch:  # Manual trigger for testing
+   ```
+3. **Or fix on main without tagging** - Push commits to fix CI, then tag once
+4. **Remember**: CI fixes are `chore(ci):` commits, not new releases
+
+**The only exception**: If CI is completely broken and has never successfully published, include the fixes in ONE patch release with the code changes.
+
+### Troubleshooting Trusted Publishing
+
+**Problem**: 404 or ENEEDAUTH errors
+- **Cause**: Node.js 22 includes npm 10.x with buggy Trusted Publishing support
+- **Solution**: Use Node.js 24+ (has npm 11.5.1+ with full support)
+- **See**: `.github/workflows/publish.yml` uses `node-version: '24'`
+
+**Problem**: GitHub release creation fails with 403
+- **Cause**: Missing `contents: write` permission
+- **Solution**: Ensure workflow has:
+  ```yaml
+  permissions:
+    id-token: write   # OIDC for npm
+    contents: write   # For GitHub releases
+  ```
+
 ### NPM Publishing (Legacy Manual Method)
 
 ```bash

@@ -78,8 +78,53 @@ npm install
 
 just test      # Run tests
 just check     # Run all checks
-just release   # Create release
+just release   # Create release (see Release Process below)
 ```
+
+## Release Process
+
+This project uses **GitHub Actions with Trusted Publishing** (OIDC) for automated npm releases:
+
+1. **Trusted Publishing Setup** (one-time):
+   - Go to https://www.npmjs.com/package/pi-pkg-guard → Settings → Trusted Publisher
+   - Configure: GitHub Actions, Owner=`alexleekt`, Repository=`pi-pkg-guard`, Workflow=`publish.yml`
+
+2. **Creating a Release**:
+   ```bash
+   just release        # Auto-detects version from package.json
+   # or manually:
+   git tag -a v0.X.Y -m "Release v0.X.Y"
+   git push origin v0.X.Y
+   ```
+
+3. **What Happens**:
+   - GitHub Actions runs checks (biome, tests, typecheck)
+   - Publishes to npm with provenance (OIDC - no token needed)
+   - Creates GitHub Release with auto-generated notes
+
+### CI/CD Debugging Lessons
+
+**⚠️ Important**: If the CI workflow fails, don't create multiple version bumps to debug it.
+
+**Wrong approach** (what we did for v0.4.x):
+```bash
+# ❌ DON'T: 10 patch releases just for CI fixes
+git tag v0.4.1 && git push  # fix 1
+git tag v0.4.2 && git push  # fix 2
+# ... 8 more times ...
+```
+
+**Right approach** for future:
+- Use `workflow_dispatch` (manual trigger) to test workflow changes
+- Or push commits to main without tagging, then tag once it works
+- CI fixes don't need version bumps unless they fix user-facing delivery
+
+### Key Technical Details
+
+- **Node.js 24** required for npm Trusted Publishing (not 22 - has buggy support)
+- **Permissions**: `id-token: write` (OIDC), `contents: write` (releases)
+- **No npm token needed**: OIDC handles authentication automatically
+- **Provenance**: Automatic with Trusted Publishing (no `--provenance` flag needed)
 
 ## License
 
