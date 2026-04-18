@@ -5,6 +5,99 @@
 default:
     @just --list
 
+# Development mode toggle - prevent duplicate extension loading
+# =============================================================================
+
+# Check current installation status
+dev-status:
+    #!/usr/bin/env bash
+    echo "=== pi-pkg-guard Installation Status ==="
+    echo ""
+    
+    # Check npm package
+    if pi package list 2>/dev/null | grep -q "pi-pkg-guard"; then
+        echo "📦 npm package: INSTALLED"
+        pi package list 2>/dev/null | grep "pi-pkg-guard" | head -1
+    else
+        echo "📦 npm package: NOT installed"
+    fi
+    
+    # Check symlink
+    if [ -L "$HOME/.pi/agent/extensions/pi-pkg-guard" ]; then
+        SYMLINK_TARGET=$(readlink "$HOME/.pi/agent/extensions/pi-pkg-guard")
+        echo "🔗 dev symlink: $SYMLINK_TARGET"
+    else
+        echo "🔗 dev symlink: NOT present"
+    fi
+    
+    echo ""
+    echo "🎯 Recommendation:"
+    if pi package list 2>/dev/null | grep -q "pi-pkg-guard" && [ -L "$HOME/.pi/agent/extensions/pi-pkg-guard" ]; then
+        echo "   ⚠️  DUPLICATE DETECTED - Run 'just dev-mode' or 'just user-mode'"
+    elif [ -L "$HOME/.pi/agent/extensions/pi-pkg-guard" ]; then
+        echo "   ✅ Dev mode active - good for development"
+    elif pi package list 2>/dev/null | grep -q "pi-pkg-guard"; then
+        echo "   ✅ User mode active - using published version"
+    else
+        echo "   ❌ Not installed - run 'just dev-mode' or 'pi package add pi-pkg-guard'"
+    fi
+
+# Switch to development mode (symlink only, remove npm package)
+dev-mode:
+    #!/usr/bin/env bash
+    set -e
+    echo "🔄 Switching to DEV mode..."
+    
+    # Remove npm package if present
+    if pi package list 2>/dev/null | grep -q "pi-pkg-guard"; then
+        echo "📦 Removing npm:pi-pkg-guard from pi packages..."
+        pi package remove pi-pkg-guard || true
+    fi
+    
+    # Ensure symlink exists
+    EXT_DIR="$HOME/.pi/agent/extensions/pi-pkg-guard"
+    REPO_DIR="$HOME/git/pi-pkg-guard"
+    
+    if [ ! -L "$EXT_DIR" ]; then
+        echo "🔗 Creating symlink $EXT_DIR -> $REPO_DIR"
+        ln -s "$REPO_DIR" "$EXT_DIR"
+    else
+        echo "🔗 Symlink already exists"
+    fi
+    
+    echo ""
+    echo "✅ Dev mode enabled!"
+    echo "   - npm package removed"
+    echo "   - dev symlink active"
+    echo "   - Edit code in $REPO_DIR and changes are live immediately"
+
+# Switch to user mode (npm package only, remove symlink)
+user-mode:
+    #!/usr/bin/env bash
+    set -e
+    echo "🔄 Switching to USER mode..."
+    
+    # Remove symlink if present
+    EXT_DIR="$HOME/.pi/agent/extensions/pi-pkg-guard"
+    if [ -L "$EXT_DIR" ]; then
+        echo "🗑️  Removing dev symlink..."
+        rm "$EXT_DIR"
+    fi
+    
+    # Add npm package if not present
+    if ! pi package list 2>/dev/null | grep -q "pi-pkg-guard"; then
+        echo "📦 Installing npm:pi-pkg-guard..."
+        pi package add pi-pkg-guard
+    else
+        echo "📦 npm:pi-pkg-guard already installed"
+    fi
+    
+    echo ""
+    echo "✅ User mode enabled!"
+    echo "   - dev symlink removed"
+    echo "   - using published npm version"
+    echo "   - Run 'pi package update pi-pkg-guard' to get latest"
+
 # Run all checks (format, lint, test, typecheck)
 check: format lint test typecheck lint-actions
     @echo "✅ All checks passed!"

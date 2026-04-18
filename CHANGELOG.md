@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-18
+
+### Added
+
+- **Dev Mode Helpers**: Add `just dev-mode`, `just user-mode`, and `just dev-status` commands for easier local development workflow
+- Self-exclusion test coverage for `pi-pkg-guard` package detection
+
+### Fixed
+
+- Prevent `pi-pkg-guard` from detecting itself as an orphaned package when running in dev mode via symlink
+
 ## [0.4.9] - 2026-04-18
 
 ### Fixed

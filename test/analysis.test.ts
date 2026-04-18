@@ -122,6 +122,21 @@ describe("analyzePackages - GOOD CASES", () => {
 			false,
 		);
 	});
+
+	it("should exclude self (pi-pkg-guard) from orphaned", () => {
+		// Self package is filtered BEFORE analyzePackages is called
+		// So it shouldn't be in the npm list passed to analyzePackages
+		const npm = ["pi-foo", "pi-pkg-guard"];
+		// Self package should be filtered out by getNpmGlobalPackages
+		const filteredNpm = npm.filter((p) => p !== "pi-pkg-guard");
+		const registered: string[] = [];
+		const result = analyzePackages(filteredNpm, registered);
+
+		assert.strictEqual(result.hasOrphans, true);
+		assert.deepStrictEqual(result.orphaned, ["pi-foo"]);
+		// Self package should not appear
+		assert.strictEqual(result.orphaned.includes("pi-pkg-guard"), false);
+	});
 });
 
 describe("analyzePackages - EDGE CASES", () => {

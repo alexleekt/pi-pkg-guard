@@ -18,6 +18,7 @@ const NPM_PREFIX = "npm:";
 const STATUS_KEY = "ext:pi-pkg-guard:v1";
 const CONFIG_KEY = "pi-pkg-guard";
 const CORE_PACKAGE = "@mariozechner/pi-coding-agent";
+const SELF_PACKAGE = "pi-pkg-guard";
 const DEFAULT_BACKUP_PATH = `${homedir()}/.pi/agent/package-guard-backup.json`;
 
 // NPM package detection patterns
@@ -184,6 +185,8 @@ function getNpmGlobalPackages(): string[] {
 				PI_NAME_PATTERN.test(name) &&
 				// Exclude core package
 				name !== CORE_PACKAGE &&
+				// Exclude self (dev mode uses symlink, not npm)
+				name !== SELF_PACKAGE &&
 				// Validate via package.json keywords (local read, no network)
 				hasPiExtensionKeyword(nodeModulesPath, name),
 		);
