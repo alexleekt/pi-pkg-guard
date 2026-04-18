@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-17
+
+### Fixed
+
+- Removed duplicate `check` job in CI workflow that was causing redundant runs
+
+### Changed
+
+- Upgraded GitHub Actions to Node.js 22 for native TypeScript test support
+- Updated actions to `actions/checkout@v6` and `actions/setup-node@v6`
+- Added actionlint and git hooks for pre-commit validation
+- Improved CI test glob patterns for cross-platform compatibility
+
 ## [0.3.0] - 2026-04-16
 
 ### Added
@@ -61,7 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.0...v0.1.1
