@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-04-18
+
+### Fixed
+
+- Use Corepack to enable npm instead of broken `npm install -g npm@latest`
+- Workaround for Node.js 22.22.2 toolcache issue with missing `promise-retry` module
+
 ## [0.4.4] - 2026-04-18
 
 ### Fixed
@@ -102,7 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.1...v0.4.2

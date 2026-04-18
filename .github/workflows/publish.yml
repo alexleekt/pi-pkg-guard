@@ -28,10 +28,12 @@ jobs:
           registry-url: "https://registry.npmjs.org"
           cache: "npm"
 
-      - name: Upgrade npm for Trusted Publishing support
-        # npm versions <10 have buggy Trusted Publishing support
-        # See: https://github.com/npm/cli/issues/9088
-        run: npm install -g npm@latest
+      - name: Enable Corepack and use latest npm
+        # Workaround for Node.js 22.22.2 broken npm toolcache
+        # See: https://github.com/actions/runner-images/issues/13883
+        run: |
+          corepack enable
+          corepack prepare npm@latest --activate
 
       - name: Install dependencies
         run: npm ci
