@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-04-18
+
+### Fixed
+
+- Fixed shellcheck quoting warnings in CI workflow
+
 ## [0.4.6] - 2026-04-18
 
 ### Fixed
@@ -116,7 +122,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.6...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.7...HEAD
+[0.4.7]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.3...v0.4.4
