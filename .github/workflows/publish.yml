@@ -13,8 +13,9 @@ on:
 
 # Best practices from npm docs: https://docs.npmjs.com/trusted-publishers
 permissions:
-  id-token: write # Required for OIDC Trusted Publishing
-  contents: read    # Required for checkout
+  id-token: write   # Required for OIDC Trusted Publishing
+  contents: write   # Required for GitHub releases
+  pull-requests: read  # For checkout
 
 jobs:
   publish:

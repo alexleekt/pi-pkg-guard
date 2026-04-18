@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-04-18
+
+### Fixed
+
+- Fix GitHub token permissions for release creation (needs `contents: write`)
+
 ## [0.4.8] - 2026-04-18
 
 ### Fixed
@@ -131,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.8...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.9...HEAD
+[0.4.9]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.8...v0.4.9
 [0.4.8]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.7...v0.4.8
 [0.4.7]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.5...v0.4.6
