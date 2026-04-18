@@ -1,8 +1,8 @@
-import { execSync, exec } from "node:child_process";
+import { exec, execSync } from "node:child_process";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
-import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import type {
 	ExtensionAPI,
