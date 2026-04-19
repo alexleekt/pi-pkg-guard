@@ -1,9 +1,13 @@
 import { exec, execSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+
+const require = createRequire(import.meta.url);
+const { version: EXTENSION_VERSION } = require("../package.json");
 
 const execAsync = promisify(exec);
 import type {
@@ -14,6 +18,23 @@ import { initializeI18n, t } from "./i18n/index.js";
 
 // Initialize i18n with detected locale
 initializeI18n();
+
+// =============================================================================
+// Error Handling Utilities
+// =============================================================================
+
+/**
+ * Check if an error is an expected "file not found" error.
+ * Used to distinguish between expected failures (optional file reads)
+ * and unexpected errors (permissions, corruption, etc.).
+ */
+function isFileNotFoundError(error: unknown): boolean {
+	return (
+		error instanceof Error &&
+		"code" in error &&
+		(error.code === "ENOENT" || error.code === "ENOTDIR")
+	);
+}
 
 // =============================================================================
 // Constants
@@ -35,6 +56,22 @@ const PI_NAME_PATTERN = /(^pi-|-pi$|\/pi-)/;
 // Keywords that indicate a package is a pi extension
 const PI_KEYWORDS = ["pi-coding-agent", "pi-extension", "pi-package"];
 
+const BACKUP_DATA_SCHEMA_URL = `https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v${EXTENSION_VERSION}/schema/backup-data.json`;
+
+// Accept schema URLs from any version tag, main branch, or refs/tags pattern
+// This ensures backward compatibility as the schema evolves
+const ALLOWED_SCHEMA_URL_PATTERNS = [
+	// Current version (exact match)
+	BACKUP_DATA_SCHEMA_URL,
+	// Any version tag (vX.Y.Z)
+	/^https:\/\/raw\.githubusercontent\.com\/alexleekt\/pi-pkg-guard\/v\d+\.\d+\.\d+\/schema\/backup-data\.json$/,
+	// refs/tags pattern (any tag)
+	/^https:\/\/raw\.githubusercontent\.com\/alexleekt\/pi-pkg-guard\/refs\/tags\/v\d+\.\d+\.\d+\/schema\/backup-data\.json$/,
+	// Main branch (for backward compatibility with dev versions)
+	"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/refs/heads/main/schema/backup-data.json",
+	"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/main/schema/backup-data.json",
+];
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -53,13 +90,14 @@ interface GuardConfig {
 	backupPath?: string;
 	gistId?: string;
 	gistEnabled?: boolean;
+	excludedPackages?: string[];
 }
 
 interface BackupData {
+	$schema: string;
 	timestamp: string;
 	npmPackages: string[];
-	registeredPackages: string[];
-	orphanedPackages: string[];
+	excludedPackages?: string[];
 }
 
 // =============================================================================
@@ -104,6 +142,13 @@ export function isGuardConfig(value: unknown): value is GuardConfig {
 	) {
 		return false;
 	}
+	if (
+		candidate.excludedPackages !== undefined &&
+		(!Array.isArray(candidate.excludedPackages) ||
+			!candidate.excludedPackages.every((p) => typeof p === "string"))
+	) {
+		return false;
+	}
 
 	return true;
 }
@@ -112,6 +157,102 @@ export function isBashToolInput(input: unknown): input is { command?: string } {
 	if (typeof input !== "object" || input === null) return false;
 	if (Array.isArray(input)) return false;
 	return true;
+}
+
+// =============================================================================
+// Schema and Validation
+// =============================================================================
+
+interface ValidationResult {
+	valid: boolean;
+	errors: string[];
+}
+
+/**
+ * Validate backup data against the expected schema.
+ * This is a runtime validator that checks structure without external dependencies.
+ */
+function validateBackupData(data: unknown): ValidationResult {
+	const errors: string[] = [];
+
+	// Check if it's an object
+	if (typeof data !== "object" || data === null) {
+		return { valid: false, errors: ["Data must be an object"] };
+	}
+
+	if (Array.isArray(data)) {
+		return { valid: false, errors: ["Data must be an object, not an array"] };
+	}
+
+	const candidate = data as Record<string, unknown>;
+
+	// Check $schema field
+	if (candidate.$schema === undefined) {
+		errors.push("Missing required field: $schema");
+	} else if (typeof candidate.$schema !== "string") {
+		errors.push("Field '$schema' must be a string");
+	} else {
+		const isValidSchemaUrl = ALLOWED_SCHEMA_URL_PATTERNS.some((pattern) =>
+			typeof pattern === "string"
+				? candidate.$schema === pattern
+				: pattern.test(candidate.$schema as string),
+		);
+		if (!isValidSchemaUrl) {
+			errors.push(
+				`Unrecognized schema URL: '${candidate.$schema}'. Expected a pi-pkg-guard backup schema URL.`,
+			);
+		}
+	}
+
+	// Check timestamp
+	if (candidate.timestamp === undefined) {
+		errors.push("Missing required field: timestamp");
+	} else if (typeof candidate.timestamp !== "string") {
+		errors.push("Field 'timestamp' must be a string");
+	} else if (Number.isNaN(Date.parse(candidate.timestamp))) {
+		errors.push("Field 'timestamp' must be a valid ISO 8601 date-time string");
+	}
+
+	// Check npmPackages
+	if (candidate.npmPackages === undefined) {
+		errors.push("Missing required field: npmPackages");
+	} else if (!Array.isArray(candidate.npmPackages)) {
+		errors.push("Field 'npmPackages' must be an array");
+	} else {
+		for (let i = 0; i < candidate.npmPackages.length; i++) {
+			if (typeof candidate.npmPackages[i] !== "string") {
+				errors.push(`Field 'npmPackages[${i}]' must be a string`);
+			}
+		}
+	}
+
+	// Check excludedPackages (optional)
+	if (candidate.excludedPackages !== undefined) {
+		if (!Array.isArray(candidate.excludedPackages)) {
+			errors.push("Field 'excludedPackages' must be an array");
+		} else {
+			for (let i = 0; i < candidate.excludedPackages.length; i++) {
+				if (typeof candidate.excludedPackages[i] !== "string") {
+					errors.push(`Field 'excludedPackages[${i}]' must be a string`);
+				}
+			}
+		}
+	}
+
+	// Check for additional properties
+	const allowedKeys = [
+		"$schema",
+		"timestamp",
+		"npmPackages",
+		"excludedPackages",
+	];
+	for (const key of Object.keys(candidate)) {
+		if (!allowedKeys.includes(key)) {
+			errors.push(`Unexpected property: '${key}'`);
+		}
+	}
+
+	return { valid: errors.length === 0, errors };
 }
 
 // =============================================================================
@@ -189,8 +330,15 @@ export function hasPiExtensionKeyword(
 		const pkg = JSON.parse(content) as { keywords?: string[] };
 		const keywords = pkg.keywords || [];
 		return keywords.some((kw) => PI_KEYWORDS.includes(kw));
-	} catch {
-		// If we can't read package.json, fall back to name-only detection
+	} catch (error) {
+		// Package.json not found - fall back to name-only detection (expected for some packages)
+		// Log unexpected errors (permissions, JSON parse errors) for debugging
+		if (!isFileNotFoundError(error)) {
+			console.warn(
+				`[pi-pkg-guard] Unexpected error reading package.json for ${packageName}:`,
+				error,
+			);
+		}
 		return true;
 	}
 }
@@ -214,19 +362,28 @@ export function getNpmGlobalPackages(): string[] {
 		}).trim();
 		const nodeModulesPath = `${globalPrefix}/lib/node_modules`;
 
+		// Read excluded packages from config
+		const config = readGuardConfig();
+		const excludedPackages = new Set<string>([CORE_PACKAGE, SELF_PACKAGE]);
+		if (config.excludedPackages) {
+			for (const pkg of config.excludedPackages) {
+				excludedPackages.add(pkg);
+			}
+		}
+
 		return Object.keys(deps).filter(
 			(name) =>
+				// Exclude configured packages (core, self, and user-defined)
+				!excludedPackages.has(name) &&
 				// Match name patterns: pi-*, *-pi, @scope/pi-*
 				PI_NAME_PATTERN.test(name) &&
-				// Exclude core package
-				name !== CORE_PACKAGE &&
-				// Exclude self (dev mode uses symlink, not npm)
-				name !== SELF_PACKAGE &&
 				// Validate via package.json keywords (local read, no network)
 				hasPiExtensionKeyword(nodeModulesPath, name),
 		);
-	} catch {
-		// Silently fail - this is a non-critical operation
+	} catch (error) {
+		// npm list can fail for various reasons (npm not installed, no global packages)
+		// Log error for debugging but return empty array - this is non-critical
+		console.warn("[pi-pkg-guard] Failed to get npm global packages:", error);
 		return [];
 	}
 }
@@ -245,8 +402,12 @@ export function readPiSettings(): PiSettings {
 		}
 
 		return parsed;
-	} catch {
-		// File doesn't exist or is invalid - return empty settings
+	} catch (error) {
+		// File doesn't exist - return empty settings (expected on first run)
+		// Log unexpected errors (permissions, corruption) for debugging
+		if (!isFileNotFoundError(error)) {
+			console.warn("[pi-pkg-guard] Unexpected error reading settings:", error);
+		}
 		return {};
 	}
 }
@@ -261,7 +422,10 @@ function readGuardConfig(): GuardConfig {
 		}
 
 		return config;
-	} catch {
+	} catch (error) {
+		// Settings read failures are already logged by readPiSettings()
+		// Guard config failures are typically type validation issues
+		console.warn("[pi-pkg-guard] Failed to read guard config:", error);
 		return {};
 	}
 }
@@ -351,18 +515,37 @@ export function syncOrphanedPackages(diff: PackageDiff): void {
 // =============================================================================
 
 /**
+ * Get version from package.json
+ */
+export function getExtensionVersion(): string {
+	try {
+		// Extension is at extensions/index.ts, package.json is one level up
+		const pkgPath = new URL("../package.json", import.meta.url);
+		const content = readFileSync(pkgPath, "utf-8");
+		const pkg = JSON.parse(content) as { version?: string };
+		return pkg.version || "unknown";
+	} catch (error) {
+		// Package.json should always exist - log unexpected errors
+		console.warn(
+			"[pi-pkg-guard] Unexpected error reading extension version:",
+			error,
+		);
+		return "unknown";
+	}
+}
+
+/**
  * Create backup data object with current package state.
  */
 function createBackupData(): BackupData {
 	const npmPackages = getNpmGlobalPackages();
-	const registeredPackages = getRegisteredPackages();
-	const diff = analyzePackages();
+	const config = readGuardConfig();
 
 	return {
+		$schema: BACKUP_DATA_SCHEMA_URL,
 		timestamp: new Date().toISOString(),
 		npmPackages,
-		registeredPackages,
-		orphanedPackages: diff.orphaned,
+		excludedPackages: config.excludedPackages,
 	};
 }
 
@@ -607,9 +790,10 @@ async function handleBackup(ctx: ExtensionCommandContext): Promise<void> {
 
 	ctx.ui.setWorkingMessage(t("backup.saving"));
 
+	let localSuccess = false;
 	try {
 		saveLocalBackup(backupPath);
-		ctx.ui.notify(t("backup.local_success", { path: backupPath }), "info");
+		localSuccess = true;
 	} catch (error) {
 		ctx.ui.setWorkingMessage();
 		ctx.ui.notify(
@@ -621,23 +805,31 @@ async function handleBackup(ctx: ExtensionCommandContext): Promise<void> {
 		return;
 	}
 
+	// If Gist sync is enabled, do it before showing any success message
 	if (config.gistId && config.gistEnabled !== false) {
 		ctx.ui.setWorkingMessage(t("backup.syncing_gist"));
 		const result = await syncGistBackup(config.gistId, data);
-		if (result.success) {
+		ctx.ui.setWorkingMessage();
+
+		if (result.success && localSuccess) {
+			// Both succeeded - show combined message
 			ctx.ui.notify(
-				t("backup.gist_success", { gistId: config.gistId }),
+				`${t("backup.local_success", { path: backupPath })}
+\n${t("backup.gist_success", { gistId: config.gistId })}`,
 				"info",
 			);
-		} else {
+		} else if (!result.success) {
+			// Local succeeded, Gist failed - show warning with both statuses
 			ctx.ui.notify(
 				t("backup.gist_warning", { error: result.error || "" }),
 				"warning",
 			);
 		}
+	} else {
+		// No Gist sync - just show local success
+		ctx.ui.setWorkingMessage();
+		ctx.ui.notify(t("backup.local_success", { path: backupPath }), "info");
 	}
-
-	ctx.ui.setWorkingMessage();
 }
 
 async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
@@ -655,14 +847,18 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 
 	let backupData: BackupData | null = null;
 	let backupSource = "local";
+	let validationError: string | null = null;
 
 	ctx.ui.setWorkingMessage(t("restore.reading"));
 
 	try {
 		const content = readFileSync(backupPath, "utf-8");
-		const parsed = JSON.parse(content) as BackupData;
-		if (parsed && Array.isArray(parsed.registeredPackages)) {
-			backupData = parsed;
+		const parsed = JSON.parse(content) as unknown;
+		const validation = validateBackupData(parsed);
+		if (validation.valid) {
+			backupData = parsed as BackupData;
+		} else {
+			validationError = validation.errors.join("; ");
 		}
 	} catch {
 		// Local backup failed, will try gist
@@ -672,10 +868,13 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 		try {
 			const result = await getGistContent(config.gistId);
 			if (result.success && result.content) {
-				const parsed = JSON.parse(result.content) as BackupData;
-				if (parsed && Array.isArray(parsed.registeredPackages)) {
-					backupData = parsed;
+				const parsed = JSON.parse(result.content) as unknown;
+				const validation = validateBackupData(parsed);
+				if (validation.valid) {
+					backupData = parsed as BackupData;
 					backupSource = "gist";
+				} else {
+					validationError = validation.errors.join("; ");
 				}
 			}
 		} catch {
@@ -686,7 +885,14 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 	ctx.ui.setWorkingMessage();
 
 	if (!backupData) {
-		ctx.ui.notify(t("restore.no_backup"), "error");
+		if (validationError) {
+			ctx.ui.notify(
+				t("restore.invalid_backup", { error: validationError }),
+				"error",
+			);
+		} else {
+			ctx.ui.notify(t("restore.no_backup"), "error");
+		}
 		return;
 	}
 
@@ -698,15 +904,48 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 		"info",
 	);
 
+	// Handle excluded packages from backup
+	if (backupData.excludedPackages && backupData.excludedPackages.length > 0) {
+		const currentConfig = readGuardConfig();
+		const currentExcluded = new Set(currentConfig.excludedPackages || []);
+		const newExclusions = backupData.excludedPackages.filter(
+			(pkg) => !currentExcluded.has(pkg),
+		);
+
+		if (newExclusions.length > 0) {
+			const choice = await ctx.ui.select(
+				t("restore.exclusions_prompt", {
+					count: String(newExclusions.length),
+					packages: newExclusions.map((p) => `  - ${p}`).join("\n"),
+				}),
+				[t("restore.exclusions_yes"), t("restore.exclusions_no")],
+			);
+
+			if (choice === t("restore.exclusions_yes")) {
+				currentConfig.excludedPackages = [
+					...(currentConfig.excludedPackages || []),
+					...newExclusions,
+				];
+				writeGuardConfig(currentConfig);
+				ctx.ui.notify(
+					t("restore.exclusions_added", {
+						count: String(newExclusions.length),
+					}),
+					"info",
+				);
+			}
+		}
+	}
+
 	const currentRegistered = new Set(getRegisteredPackages());
-	const packagesToRestore = backupData.registeredPackages.filter(
+	const packagesToRestore = backupData.npmPackages.filter(
 		(pkg) => !currentRegistered.has(pkg),
 	);
 
 	if (packagesToRestore.length === 0) {
 		ctx.ui.notify(
 			t("restore.all_registered", {
-				count: backupData.registeredPackages.length,
+				count: String(backupData.npmPackages.length),
 			}),
 			"info",
 		);
@@ -714,7 +953,7 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 	}
 
 	ctx.ui.notify(
-		`${t("restore.packages_available", { count: packagesToRestore.length })}:\n${packagesToRestore.map((p) => `  - ${p}`).join("\n")}`,
+		`${t("restore.packages_available", { count: String(packagesToRestore.length) })}:\n${packagesToRestore.map((p) => `  - ${p}`).join("\n")}`,
 		"info",
 	);
 
@@ -1011,13 +1250,16 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 	pi.registerCommand("package-guard", {
 		description: t("command.description"),
 		handler: async (_args, ctx) => {
-			const choice = await ctx.ui.select(t("menu.title"), [
-				t("menu.scan"),
-				t("menu.backup"),
-				t("menu.restore"),
-				t("menu.settings"),
-				t("menu.help"),
-			]);
+			const choice = await ctx.ui.select(
+				t("menu.title", { version: getExtensionVersion() }),
+				[
+					t("menu.scan"),
+					t("menu.backup"),
+					t("menu.restore"),
+					t("menu.settings"),
+					t("menu.help"),
+				],
+			);
 
 			switch (choice) {
 				case t("menu.scan"):

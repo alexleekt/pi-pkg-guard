@@ -1,0 +1,53 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.7.0/schema/backup-data.json",
+	"title": "Package Guard Backup Data",
+	"description": "Schema for pi-pkg-guard backup files containing npm package lists and exclusion preferences",
+	"type": "object",
+	"required": ["$schema", "timestamp", "npmPackages"],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "Reference to this JSON schema. Accepts any pi-pkg-guard version tag or main branch.",
+			"anyOf": [
+				{
+					"const": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.7.0/schema/backup-data.json"
+				},
+				{
+					"pattern": "^https://raw\\.githubusercontent\\.com/alexleekt/pi-pkg-guard/v\\d+\\.\\d+\\.\\d+/schema/backup-data\\.json$"
+				},
+				{
+					"pattern": "^https://raw\\.githubusercontent\\.com/alexleekt/pi-pkg-guard/refs/tags/v\\d+\\.\\d+\\.\\d+/schema/backup-data\\.json$"
+				},
+				{
+					"const": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/refs/heads/main/schema/backup-data.json"
+				},
+				{
+					"const": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/main/schema/backup-data.json"
+				}
+			]
+		},
+		"timestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "ISO 8601 timestamp when the backup was created"
+		},
+		"npmPackages": {
+			"type": "array",
+			"description": "List of packages installed globally via npm that should be registered with pi",
+			"items": {
+				"type": "string",
+				"description": "Package name (plain or with npm: prefix for scoped packages)"
+			}
+		},
+		"excludedPackages": {
+			"type": "array",
+			"description": "Optional list of packages to exclude from orphan detection",
+			"items": {
+				"type": "string",
+				"description": "Package name to exclude from detection"
+			}
+		}
+	},
+	"additionalProperties": false
+}

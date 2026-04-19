@@ -21,37 +21,24 @@ const translations: Map<string, Partial<TranslationDict>> = new Map([
 ]);
 
 /**
- * Parse plural options from ICU MessageFormat
+ * Parse ICU MessageFormat options for plural/select forms.
+ *
+ * Shared implementation for both plural and select patterns:
+ * - Plural: one {...} other {...} =0 {...}
+ * - Select: male {...} female {...} other {...}
  */
-function parsePluralOptions(options: string): Record<string, string> {
+function parseIcuOptions(options: string): Record<string, string> {
 	const optionPattern = /(\w+)\s*\{([^}]*)\}/g;
-	const pluralForms: Record<string, string> = {};
+	const forms: Record<string, string> = {};
 
-	let optionMatch: RegExpExecArray | null = optionPattern.exec(options);
-	while (optionMatch !== null) {
-		const [, key, content] = optionMatch;
-		pluralForms[key] = content;
-		optionMatch = optionPattern.exec(options);
+	let match = optionPattern.exec(options);
+	while (match !== null) {
+		const [, key, content] = match;
+		forms[key] = content;
+		match = optionPattern.exec(options);
 	}
 
-	return pluralForms;
-}
-
-/**
- * Parse select options from ICU MessageFormat
- */
-function parseSelectOptions(options: string): Record<string, string> {
-	const optionPattern = /(\w+)\s*\{([^}]*)\}/g;
-	const selectForms: Record<string, string> = {};
-
-	let optionMatch: RegExpExecArray | null = optionPattern.exec(options);
-	while (optionMatch !== null) {
-		const [, key, content] = optionMatch;
-		selectForms[key] = content;
-		optionMatch = optionPattern.exec(options);
-	}
-
-	return selectForms;
+	return forms;
 }
 
 /**
@@ -83,7 +70,7 @@ function formatMessage(
 						? value
 						: Number.parseInt(String(value), 10) || 0;
 
-				const pluralForms = parsePluralOptions(options);
+				const pluralForms = parseIcuOptions(options);
 
 				// Select appropriate form
 				let form = pluralForms.other || "";
@@ -102,7 +89,7 @@ function formatMessage(
 
 			if (type === "select") {
 				const strValue = String(value);
-				const selectForms = parseSelectOptions(options);
+				const selectForms = parseIcuOptions(options);
 
 				// Select appropriate form or fallback to other
 				return (

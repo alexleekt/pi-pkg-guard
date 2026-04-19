@@ -9,9 +9,9 @@
  */
 
 import assert from "node:assert";
-import { describe, it } from "node:test";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, it } from "node:test";
 
 // =============================================================================
 // Type Guard Implementations (mirroring extensions/index.ts)
@@ -26,6 +26,7 @@ interface GuardConfig {
 	backupPath?: string;
 	gistId?: string;
 	gistEnabled?: boolean;
+	excludedPackages?: string[];
 }
 
 function isPiSettings(value: unknown): value is PiSettings {
@@ -63,6 +64,13 @@ function isGuardConfig(value: unknown): value is GuardConfig {
 	if (
 		candidate.gistEnabled !== undefined &&
 		typeof candidate.gistEnabled !== "boolean"
+	) {
+		return false;
+	}
+	if (
+		candidate.excludedPackages !== undefined &&
+		(!Array.isArray(candidate.excludedPackages) ||
+			!candidate.excludedPackages.every((p) => typeof p === "string"))
 	) {
 		return false;
 	}
@@ -230,6 +238,29 @@ describe("isGuardConfig", () => {
 				true,
 			);
 		});
+
+		it("accepts object with excludedPackages array", () => {
+			assert.strictEqual(
+				isGuardConfig({ excludedPackages: ["package1", "package2"] }),
+				true,
+			);
+		});
+
+		it("accepts object with empty excludedPackages array", () => {
+			assert.strictEqual(isGuardConfig({ excludedPackages: [] }), true);
+		});
+
+		it("accepts object with all properties including excludedPackages", () => {
+			assert.strictEqual(
+				isGuardConfig({
+					backupPath: "/home/user/.pi/agent/backup.json",
+					gistId: "abc123def456",
+					gistEnabled: true,
+					excludedPackages: ["some-pkg", "another-pkg"],
+				}),
+				true,
+			);
+		});
 	});
 
 	describe("invalid types (should return false)", () => {
@@ -286,6 +317,43 @@ describe("isGuardConfig", () => {
 		it("accepts empty string gistId", () => {
 			// Empty string is still a valid string type
 			assert.strictEqual(isGuardConfig({ gistId: "" }), true);
+		});
+
+		it("rejects excludedPackages as string", () => {
+			assert.strictEqual(
+				isGuardConfig({ excludedPackages: "not-an-array" }),
+				false,
+			);
+		});
+
+		it("rejects excludedPackages as null", () => {
+			assert.strictEqual(isGuardConfig({ excludedPackages: null }), false);
+		});
+
+		it("rejects excludedPackages as number", () => {
+			assert.strictEqual(isGuardConfig({ excludedPackages: 123 }), false);
+		});
+
+		it("rejects excludedPackages with non-string elements", () => {
+			assert.strictEqual(
+				isGuardConfig({ excludedPackages: ["pkg1", 123, "pkg2"] }),
+				false,
+			);
+		});
+
+		it("rejects excludedPackages with null elements", () => {
+			assert.strictEqual(
+				isGuardConfig({ excludedPackages: ["pkg1", null, "pkg2"] }),
+				false,
+			);
+		});
+
+		it("accepts excludedPackages with empty strings", () => {
+			// Empty strings are valid string type
+			assert.strictEqual(
+				isGuardConfig({ excludedPackages: ["", "pkg"] }),
+				true,
+			);
 		});
 	});
 });

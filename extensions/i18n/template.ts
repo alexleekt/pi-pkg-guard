@@ -20,7 +20,7 @@ export const LOCALE_TEMPLATE: TranslationDict = {
 		"Use 'pi install npm:{packageName}' instead of 'npm install -g'",
 
 	// Command menu
-	"menu.title": "Package Guard - Main Menu",
+	"menu.title": "Package Guard v{version} - Main Menu",
 	"menu.scan": "Scan: Find and register orphaned packages",
 	"menu.backup": "Backup: Save packages to local file + Gist",
 	"menu.restore": "Restore: Register packages from backup",
@@ -49,9 +49,15 @@ export const LOCALE_TEMPLATE: TranslationDict = {
 	"restore.reading": "Reading backup...",
 	"restore.invalid_path":
 		"✗ Invalid backup path: {path}.\n\nPath must be within ~/.pi/agent/ or a temporary directory.",
+	"restore.invalid_backup": "✗ Invalid backup data: {error}",
 	"restore.no_backup":
 		"✗ No backup found.\n\nRun Backup first to create a backup.",
 	"restore.loaded": "✓ Loaded backup from {source}:\n  {timestamp}",
+	"restore.exclusions_prompt":
+		"This backup contains {count} exclusion(s) not in your current settings:\n{packages}\n\nRestore these exclusions?",
+	"restore.exclusions_yes": "Yes, add exclusions",
+	"restore.exclusions_no": "No, keep current settings",
+	"restore.exclusions_added": "✓ Added {count} exclusion(s) to settings",
 	"restore.all_registered":
 		"✓ All {count} {count, plural, one {package} other {packages}} from backup are already registered.\n\nNo restore needed.",
 	"restore.packages_available":
