@@ -7,10 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-19
+
+### Added
+
+- **Backup schema**: JSON Schema validation with `schema/backup-data.json` for backup data integrity
+- **excludedPackages**: New `GuardConfig` field to filter packages from npm global list
+- **Runtime validation**: `validateBackupData()` function with comprehensive schema validation
+- **Schema versioning**: `$schema` URL field replacing simple version number
+- **Multi-pattern schema URLs**: Backward compatibility for various GitHub raw URL patterns
+- **Error handling**: `isFileNotFoundError()` helper for contextual error logging
+- **i18n consolidation**: Unified `parseIcuOptions()` function replacing duplicate plural/select parsers
+- **Restore flow**: New translations for exclusions (`restore.exclusions_prompt`, `restore.exclusions_yes`, `restore.exclusions_no`, `restore.exclusions_added`)
+- **Validation tests**: `test/validation.test.ts` with 48+ test cases for backup schema
+- **Version tests**: `test/version.test.ts` for extension version detection
+- **Development team**: AI agent definitions in `.pi/agents/` for collaborative development
+
+### Changed
+
+- **Backup structure**: Simplified `BackupData` interface - removed `registeredPackages`/`orphanedPackages`, added `excludedPackages`
+- **Error handling**: Consistent contextual logging across all file operations
+- **i18n parsing**: Consolidated `parsePluralOptions()` and `parseSelectOptions()` into single `parseIcuOptions()`
+- **Backup messages**: Fixed to show both local and Gist success instead of overwriting
+
 ### Fixed
 
-- **i18n**: Removed 3 unused translation keys (`backup.gist_failed`, `config.path_default`, `config.gist_not_configured`) that were defined but never used
-- **Testing**: Fixed i18n key validation regex to correctly parse translation keys and avoid false positives from string content
+- **i18n**: Removed 3 unused translation keys (`backup.gist_failed`, `config.path_default`, `config.gist_not_configured`)
+- **Testing**: Fixed i18n key validation regex to avoid false positives
 
 ## [0.7.0] - 2026-04-19
 
@@ -187,7 +210,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.9...v0.5.0
 [0.4.9]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.8...v0.4.9

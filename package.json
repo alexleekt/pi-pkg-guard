@@ -1,6 +1,6 @@
 {
 	"name": "pi-pkg-guard",
-	"version": "0.7.0",
+	"version": "0.8.0",
 	"description": "A lightweight pi extension that guards against the 'orphaned package' trap where packages are installed via npm but not registered in pi's settings.json",
 	"type": "module",
 	"license": "MIT",
