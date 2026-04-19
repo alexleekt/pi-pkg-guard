@@ -41,7 +41,6 @@ export const en_US: TranslationDict = {
 	"backup.gist_success":
 		"✓ Synced to GitHub Gist:\n  https://gist.github.com/{gistId}",
 	"backup.gist_warning": "✓ Local backup saved\n⚠ Gist sync failed:\n{error}",
-	"backup.gist_failed": "Failed to sync gist: {error}",
 
 	// Restore
 	"restore.reading": "Reading backup...",
@@ -75,10 +74,8 @@ export const en_US: TranslationDict = {
 	"config.title": "Package Guard Configuration",
 	"config.path_label":
 		"[Path] Local backup: {path}{isDefault, select, true { (default)} other {}}",
-	"config.path_default": " (default)",
 	"config.gist_label":
 		"[Gist] {gistId, select, undefined {Not configured} other {https://gist.github.com/{gistId}}}{ghInstalled, select, false { (install gh CLI)} other {}}",
-	"config.gist_not_configured": "Not configured",
 	"config.gist_gh_missing": " (install gh CLI)",
 	"config.action_create_gist": "[Action] Create new GitHub Gist",
 	"config.action_delete_gist": "[Action] Delete GitHub Gist",

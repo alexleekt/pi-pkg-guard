@@ -33,7 +33,6 @@ export interface TranslationDict {
 	"backup.syncing_gist": string;
 	"backup.gist_success": string;
 	"backup.gist_warning": string;
-	"backup.gist_failed": string;
 
 	// Restore
 	"restore.reading": string;
@@ -59,9 +58,7 @@ export interface TranslationDict {
 	// Settings / Config
 	"config.title": string;
 	"config.path_label": string;
-	"config.path_default": string;
 	"config.gist_label": string;
-	"config.gist_not_configured": string;
 	"config.gist_gh_missing": string;
 	"config.action_create_gist": string;
 	"config.action_delete_gist": string;
