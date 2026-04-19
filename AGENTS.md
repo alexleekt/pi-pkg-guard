@@ -144,6 +144,33 @@ function readPiSettings(): PiSettings {
 3. **Review type safety** - Ensure no TypeScript errors
 4. **Test the extension locally** - Install and verify in pi
 
+### Startup Check: Extension Loading Verification
+
+When starting work on this project, verify pi-coding-agent will load the **latest version** (not a stale global npm version):
+
+```bash
+# 1. Check current version in repo
+cat package.json | grep '"version"'
+
+# 2. Verify symlink points to this repo (development mode)
+ls -la ~/.pi/agent/extensions/pi-pkg-guard
+# Expected: symlink -> /Users/alexleekt/git/pi-pkg-guard
+
+# 3. Check for conflicting global npm installations
+npm list -g pi-pkg-guard
+# Expected: (empty) or not found - any global version may conflict
+
+# 4. If global version exists, remove it
+npm uninstall -g pi-pkg-guard
+```
+
+**Why this matters:**
+- Symlink (dev mode): Loads directly from repo, immediate code changes
+- Global npm: May load stale version 0.4.9 instead of latest 0.7.0+
+- Conflict causes confusing behavior where code changes don't reflect in pi
+
+**Golden rule:** Only one loading method should be active - symlink for development, npm for production use.
+
 ---
 
 ## Release Process

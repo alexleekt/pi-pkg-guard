@@ -41,8 +41,9 @@ function getValidKeys(): Set<string> {
 	const sourceCode = readFileSync(enUsPath, "utf-8");
 	const keys: string[] = [];
 
-	// Match "key": pattern
-	const pattern = /"([a-z_.]+)":/g;
+	// Match "key": pattern at start of line (with optional whitespace/indentation)
+	// This ensures we only match translation keys, not strings containing quoted words
+	const pattern = /^\s*"([a-z_.]+)":/gm;
 	let match: RegExpExecArray | null;
 
 	while (true) {

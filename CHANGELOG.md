@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **i18n**: Removed 3 unused translation keys (`backup.gist_failed`, `config.path_default`, `config.gist_not_configured`) that were defined but never used
+- **Testing**: Fixed i18n key validation regex to correctly parse translation keys and avoid false positives from string content
+
 ## [0.7.0] - 2026-04-19
 
 ### Added
