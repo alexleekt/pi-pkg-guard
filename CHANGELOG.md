@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-19
+
+### Added
+
+- **Documentation i18n**: Restructured docs into `docs/en-US/` with full localization support
+- **Runtime i18n**: Complete ICU MessageFormat implementation for all UI strings
+- **Type-safe translations**: 74 translation keys with full TypeScript autocomplete
+- **Locale detection**: Auto-detects locale from `~/.pi/agent/settings.json`
+- **Translation tests**: 154 tests validating all translation keys are valid and used
+- **Contributing guide**: New translation contribution workflow in `docs/en-US/CONTRIBUTING.md`
+- **Zero dependencies**: Custom ~2KB i18n engine, no external libraries needed
+
 ## [0.5.0] - 2026-04-18
 
 ### Added
