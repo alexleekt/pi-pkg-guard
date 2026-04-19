@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-19
+
+### Added
+
+- **Security validation**: `isValidGistId()` and `isValidBackupPath()` functions for preventing command injection and path traversal attacks
+- **Pattern exports**: `NPM_GLOBAL_PATTERN`, `PI_PACKAGE_PATTERN`, and `isGlobalPiInstall()` exported for testing
+- **Testing API**: Documented all exported test functions in CONTRIBUTING.md
+- **Security documentation**: Added "Security Features" section to USAGE.md
+
+### Changed
+
+- **Lean test suite**: Refactored from 390 to 179 tests with equivalent coverage
+- **i18n key**: Added `restore.invalid_path` translation key for security validation
+
+### Fixed
+
+- **Documentation**: Corrected test count references (100 → 179) across AGENTS.md, CONTRIBUTING.md, CHANGELOG.md
+- **Documentation**: Updated AGENTS.md last updated date and test file organization
+- **Documentation**: Added i18n technical details to CONTRIBUTING.md
+- **Linting**: Fixed template literal issue in `isValidBackupPath()`
+- **CHANGELOG**: Added missing version compare links for [0.5.0] and [0.6.0]
+
 ## [0.6.0] - 2026-04-19
 
 ### Added
@@ -150,7 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **npm Guard**: Warns when bash tool runs `npm install -g pi-*` commands
 - Support for both `pi-foo` and `npm:pi-foo` package name formats
 - Exclusion of core package `@mariozechner/pi-coding-agent` from orphaned detection
-- Comprehensive test suite with 100 test cases covering type guards, package analysis, and regex patterns
+- Comprehensive test suite with 179 test cases covering type guards, package analysis, regex patterns, gist utilities, and i18n validation
 - Type-safe TypeScript implementation with proper interfaces and type guards
 
 ### Technical Details
@@ -160,7 +182,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.9...HEAD
+[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.9...v0.5.0
 [0.4.9]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.8...v0.4.9
 [0.4.8]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.7...v0.4.8
 [0.4.7]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.6...v0.4.7

@@ -114,6 +114,34 @@ These are **not** considered orphaned:
 
 ---
 
+## Security Features
+
+pi-pkg-guard includes security validations to prevent command injection and path traversal attacks:
+
+### Gist ID Validation
+
+When working with GitHub Gists, all gist IDs are validated to ensure they contain only hexadecimal characters (a-f, 0-9). This prevents command injection through malicious gist IDs.
+
+```typescript
+// Internal validation - prevents attacks like:
+// abc123; rm -rf /
+// ../../../etc/passwd
+```
+
+### Backup Path Validation
+
+Backup file paths are restricted to safe directories:
+- `~/.pi/agent/` (pi configuration directory)
+- System temporary directories (`/tmp/`, etc.)
+
+This prevents path traversal attacks that could overwrite system files.
+
+### npm Command Detection
+
+The extension detects `npm install -g pi-*` commands and warns users to use `pi install npm:*` instead, preventing orphaned packages that could be exploited.
+
+---
+
 ## Best Practices
 
 ### 1. Always Use `pi install`

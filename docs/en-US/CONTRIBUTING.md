@@ -38,7 +38,7 @@ just user-mode
 ### Available Commands
 
 ```bash
-just test          # Run test suite (100 tests)
+just test          # Run test suite (179 tests)
 just check         # Run all checks (format, lint, test, typecheck)
 just fix           # Fix auto-fixable issues
 just typecheck     # TypeScript type checking only
@@ -107,10 +107,34 @@ npm test
 
 ```
 test/
-├── guards.test.ts      # Type guard tests
-├── analysis.test.ts    # Package analysis tests
-└── regex.test.ts       # Pattern matching tests
+├── analysis.test.ts    # Package analysis tests (3 tests)
+├── gist.test.ts        # Gist utility tests (10 tests)
+├── i18n-keys.test.ts  # Translation key validation (~40 tests)
+└── regex.test.ts       # Pattern matching tests (16 tests)
 ```
+
+### Testing API
+
+The following functions are exported for testing purposes:
+
+**Type Guards:**
+- `isPiSettings(value: unknown): value is PiSettings`
+- `isGuardConfig(value: unknown): value is GuardConfig`
+- `isBashToolInput(value: unknown): value is { command?: string }`
+
+**Security Validation:**
+- `isValidGistId(gistId: string): boolean` - Validates hex-only gist IDs
+- `isValidBackupPath(backupPath: string): boolean` - Validates safe backup paths
+
+**Package Analysis:**
+- `analyzePackages(): PackageDiff` - Detects orphaned packages
+- `syncOrphanedPackages(diff: PackageDiff): void` - Syncs to settings
+- `normalizePackageName(pkg: string): string` - Removes `npm:` prefix
+
+**Pattern Matching:**
+- `NPM_GLOBAL_PATTERN: RegExp` - Matches `npm install -g` commands
+- `PI_PACKAGE_PATTERN: RegExp` - Matches pi-* package names
+- `isGlobalPiInstall(command: string): { isMatch, packageName }` - Combined detection
 
 ---
 
@@ -120,6 +144,24 @@ We welcome translations! There are two types:
 
 1. **Documentation** (Markdown files in `docs/`)
 2. **Runtime Strings** (TypeScript files in `extensions/i18n/`)
+
+### Technical Details
+
+The i18n system uses a custom ~2KB implementation optimized for pi extensions:
+
+- **74 translation keys** defined in `extensions/i18n/en-US.ts`
+- **ICU MessageFormat** support for pluralization and interpolation
+- **Locale detection** from `~/.pi/agent/settings.json` (defaults to "en-US")
+- **Type-safe** translations via `TranslationDict` interface
+
+### Adding a New Language
+
+1. Copy `extensions/i18n/template.ts` to `{locale}.ts`
+2. Translate all strings (see [ICU MessageFormat](https://unicode-org.github.io/icu/userguide/format_parse/messages/))
+3. Export from `extensions/i18n/index.ts`
+4. Update `SUPPORTED_LOCALES` array
+
+See `extensions/i18n/README.md` for the full translation guide.
 
 ---
 
