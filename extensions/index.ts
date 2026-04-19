@@ -1,9 +1,11 @@
 import { exec, execSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
@@ -64,7 +66,7 @@ interface BackupData {
 // Type Guards
 // =============================================================================
 
-function isPiSettings(value: unknown): value is PiSettings {
+export function isPiSettings(value: unknown): value is PiSettings {
 	if (typeof value !== "object" || value === null) return false;
 	if (Array.isArray(value)) return false;
 	const candidate = value as Record<string, unknown>;
@@ -82,7 +84,7 @@ function isPiSettings(value: unknown): value is PiSettings {
 	return true;
 }
 
-function isGuardConfig(value: unknown): value is GuardConfig {
+export function isGuardConfig(value: unknown): value is GuardConfig {
 	if (typeof value !== "object" || value === null) return false;
 	if (Array.isArray(value)) return false;
 	const candidate = value as Record<string, unknown>;
@@ -106,7 +108,7 @@ function isGuardConfig(value: unknown): value is GuardConfig {
 	return true;
 }
 
-function isBashToolInput(input: unknown): input is { command?: string } {
+export function isBashToolInput(input: unknown): input is { command?: string } {
 	if (typeof input !== "object" || input === null) return false;
 	if (Array.isArray(input)) return false;
 	return true;
@@ -126,16 +128,45 @@ function isBashToolInput(input: unknown): input is { command?: string } {
  * @param input - URL or gist ID
  * @returns The extracted gist ID or the original input
  */
-function extractGistId(input: string): string {
+export function extractGistId(input: string): string {
 	const trimmed = input.trim();
 	const match = trimmed.match(/gist\.github\.com\/(?:.*\/)?([a-f0-9]+)/);
 	return match ? match[1] : trimmed;
 }
 
 /**
+ * Validate that a gist ID is safe to use in shell commands.
+ * Only allows hexadecimal characters to prevent command injection.
+ *
+ * @param gistId - The gist ID to validate
+ * @returns true if the gist ID is valid and safe
+ */
+export function isValidGistId(gistId: string): boolean {
+	return /^[a-f0-9]+$/i.test(gistId);
+}
+
+/**
+ * Validate that a backup path is safe to use for file operations.
+ * Only allows paths within ~/.pi/agent/ or os.tmpdir() to prevent path traversal.
+ *
+ * @param backupPath - The path to validate
+ * @returns true if the path is within allowed directories
+ */
+export function isValidBackupPath(backupPath: string): boolean {
+	const resolvedPath = join(backupPath);
+	const homeDir = homedir();
+	const allowedDirs = [join(homeDir, ".pi", "agent"), tmpdir()];
+
+	return allowedDirs.some(
+		(allowedDir) =>
+			resolvedPath === allowedDir || resolvedPath.startsWith(`${allowedDir}/`),
+	);
+}
+
+/**
  * Remove npm: prefix from package name if present.
  */
-function normalizePackageName(pkg: string): string {
+export function normalizePackageName(pkg: string): string {
 	return pkg.startsWith(NPM_PREFIX) ? pkg.slice(NPM_PREFIX.length) : pkg;
 }
 
@@ -148,7 +179,7 @@ function normalizePackageName(pkg: string): string {
  * Reads local package.json - no network access required.
  * Returns true if keywords include any PI_KEYWORDS.
  */
-function hasPiExtensionKeyword(
+export function hasPiExtensionKeyword(
 	nodeModulesPath: string,
 	packageName: string,
 ): boolean {
@@ -164,7 +195,7 @@ function hasPiExtensionKeyword(
 	}
 }
 
-function getNpmGlobalPackages(): string[] {
+export function getNpmGlobalPackages(): string[] {
 	try {
 		const output = execSync("npm list -g --json --depth=0", {
 			encoding: "utf-8",
@@ -204,7 +235,7 @@ function getNpmGlobalPackages(): string[] {
 // Settings Operations
 // =============================================================================
 
-function readPiSettings(): PiSettings {
+export function readPiSettings(): PiSettings {
 	try {
 		const content = readFileSync(SETTINGS_PATH, "utf-8");
 		const parsed = JSON.parse(content) as unknown;
@@ -281,7 +312,7 @@ function writePiSettings(settings: PiSettings): void {
  * Analyze packages to find orphaned pi extensions.
  * Orphaned = installed via npm but not registered in pi settings.
  */
-function analyzePackages(): PackageDiff {
+export function analyzePackages(): PackageDiff {
 	const npmPackages = new Set(getNpmGlobalPackages());
 	const registeredPackages = new Set(getRegisteredPackages());
 
@@ -299,7 +330,7 @@ function analyzePackages(): PackageDiff {
  * Sync orphaned packages to settings.json.
  * Adds npm: prefix to each orphaned package.
  */
-function syncOrphanedPackages(diff: PackageDiff): void {
+export function syncOrphanedPackages(diff: PackageDiff): void {
 	if (diff.orphaned.length === 0) return;
 
 	const settings = readPiSettings();
@@ -339,6 +370,11 @@ function createBackupData(): BackupData {
  * Save backup to local file.
  */
 function saveLocalBackup(backupPath: string): void {
+	if (!isValidBackupPath(backupPath)) {
+		throw new Error(
+			`Invalid backup path: ${backupPath}. Path must be within ~/.pi/agent/ or a temporary directory.`,
+		);
+	}
 	const data = createBackupData();
 	writeFileSync(backupPath, `${JSON.stringify(data, null, 2)}\n`);
 }
@@ -346,7 +382,7 @@ function saveLocalBackup(backupPath: string): void {
 /**
  * Check if gh CLI is installed.
  */
-function isGhInstalled(): boolean {
+export function isGhInstalled(): boolean {
 	try {
 		execSync("gh --version", { encoding: "utf-8", timeout: 5000 });
 		return true;
@@ -358,10 +394,18 @@ function isGhInstalled(): boolean {
 /**
  * Sync backup to GitHub Gist using gh CLI.
  */
-async function syncGistBackup(
+export async function syncGistBackup(
 	gistId: string,
 	data: BackupData,
 ): Promise<{ success: boolean; error?: string }> {
+	if (!isValidGistId(gistId)) {
+		return {
+			success: false,
+			error:
+				"Invalid gist ID format. Gist IDs must be hexadecimal characters only.",
+		};
+	}
+
 	if (!isGhInstalled()) {
 		return {
 			success: false,
@@ -372,8 +416,8 @@ async function syncGistBackup(
 
 	try {
 		// Create temp file with the content
-		const timestamp = Date.now();
-		const tempFile = `/tmp/package-guard-backup-${timestamp}.json`;
+		const randomId = randomBytes(8).toString("hex");
+		const tempFile = join(tmpdir(), `package-guard-backup-${randomId}.json`);
 		const content = `${JSON.stringify(data, null, 2)}\n`;
 		writeFileSync(tempFile, content);
 
@@ -404,7 +448,7 @@ async function syncGistBackup(
 /**
  * Create a new GitHub Gist using gh CLI.
  */
-async function createGist(): Promise<{
+export async function createGist(): Promise<{
 	success: boolean;
 	gistId?: string;
 	error?: string;
@@ -419,8 +463,8 @@ async function createGist(): Promise<{
 
 	try {
 		// Create temp file for initial content
-		const timestamp = Date.now();
-		const tempFile = `/tmp/package-guard-create-${timestamp}.json`;
+		const randomId = randomBytes(8).toString("hex");
+		const tempFile = join(tmpdir(), `package-guard-create-${randomId}.json`);
 		writeFileSync(tempFile, '{"status": "initial backup"}\n');
 
 		// Create gist using temp file (async - non-blocking)
@@ -456,9 +500,17 @@ async function createGist(): Promise<{
 /**
  * Delete a GitHub Gist using gh CLI.
  */
-async function deleteGist(
+export async function deleteGist(
 	gistId: string,
 ): Promise<{ success: boolean; error?: string }> {
+	if (!isValidGistId(gistId)) {
+		return {
+			success: false,
+			error:
+				"Invalid gist ID format. Gist IDs must be hexadecimal characters only.",
+		};
+	}
+
 	if (!isGhInstalled()) {
 		return {
 			success: false,
@@ -488,9 +540,17 @@ async function deleteGist(
 /**
  * Fetch gist content using gh CLI.
  */
-async function getGistContent(
+export async function getGistContent(
 	gistId: string,
 ): Promise<{ success: boolean; content?: string; error?: string }> {
+	if (!isValidGistId(gistId)) {
+		return {
+			success: false,
+			error:
+				"Invalid gist ID format. Gist IDs must be hexadecimal characters only.",
+		};
+	}
+
 	if (!isGhInstalled()) {
 		return {
 			success: false,
@@ -583,6 +643,15 @@ async function handleBackup(ctx: ExtensionCommandContext): Promise<void> {
 async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 	const config = readGuardConfig();
 	const backupPath = config.backupPath || DEFAULT_BACKUP_PATH;
+
+	// Validate custom backup paths (default path is always safe)
+	if (config.backupPath && !isValidBackupPath(config.backupPath)) {
+		ctx.ui.notify(
+			t("restore.invalid_path", { path: config.backupPath }),
+			"error",
+		);
+		return;
+	}
 
 	let backupData: BackupData | null = null;
 	let backupSource = "local";
@@ -990,15 +1059,16 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 }
 
 // Detect npm install with -g or --global and a pi-* package
-const NPM_GLOBAL_PATTERN = /npm\s+(?:install|i)(?:\s+\S+)*\s+(?:-g|--global)\b/;
+export const NPM_GLOBAL_PATTERN =
+	/npm\s+(?:install|i)(?:\s+\S+)*\s+(?:-g|--global)\b/;
 // Matches: pi-foo (start), lsp-pi (end), @scope/pi-foo (scoped), @scope/lsp-pi (scoped with suffix)
-const PI_PACKAGE_PATTERN =
+export const PI_PACKAGE_PATTERN =
 	/(?:^|\s|\/)pi-[a-z0-9-]+|(?:^|\s|\/)[a-z0-9-]+-pi(?:\s|$|@)/;
 
 /**
  * Check if a bash command is a global npm install of a pi package.
  */
-function isGlobalPiInstall(command: string): {
+export function isGlobalPiInstall(command: string): {
 	isMatch: boolean;
 	packageName?: string;
 } {

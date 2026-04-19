@@ -37,6 +37,7 @@ export interface TranslationDict {
 
 	// Restore
 	"restore.reading": string;
+	"restore.invalid_path": string;
 	"restore.no_backup": string;
 	"restore.loaded": string;
 	"restore.all_registered": string;

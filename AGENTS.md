@@ -1,7 +1,7 @@
 # Agent Guidelines: pi-pkg-guard
 
 **Scope:** Pi extension development and maintenance  
-**Last Updated:** 2026-04-11  
+**Last Updated:** 2026-04-19  
 **Version:** 1.0
 
 ---
@@ -69,8 +69,9 @@ npm test
 
 ```
 test/
-├── guards.test.ts      # Type guard tests
-├── analysis.test.ts     # Package analysis tests  
+├── analysis.test.ts     # Package analysis tests
+├── gist.test.ts         # Gist utility tests
+├── i18n-keys.test.ts    # Translation key validation
 └── regex.test.ts        # Pattern matching tests
 ```
 
@@ -128,7 +129,7 @@ function readPiSettings(): PiSettings {
 
 1. **Edit precisely** - Use Edit tool for targeted changes
 2. **Update tests** - Add/modify tests for new behavior
-3. **Run full test suite** - All 100 tests must pass
+3. **Run full test suite** - All 179 tests must pass
 4. **Run linting** - Ensure code style compliance:
    ```bash
    just check

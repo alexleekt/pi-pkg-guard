@@ -45,6 +45,8 @@ export const en_US: TranslationDict = {
 
 	// Restore
 	"restore.reading": "Reading backup...",
+	"restore.invalid_path":
+		"✗ Invalid backup path: {path}.\n\nPath must be within ~/.pi/agent/ or a temporary directory.",
 	"restore.no_backup":
 		"✗ No backup found.\n\nRun Backup first to create a backup.",
 	"restore.loaded": "✓ Loaded backup from {source}:\n  {timestamp}",
