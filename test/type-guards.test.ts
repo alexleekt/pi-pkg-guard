@@ -9,9 +9,9 @@
  */
 
 import assert from "node:assert";
-import { describe, it } from "node:test";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, it } from "node:test";
 
 // =============================================================================
 // Type Guard Implementations (mirroring extensions/index.ts)
