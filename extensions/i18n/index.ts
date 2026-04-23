@@ -174,11 +174,16 @@ function formatMessage(
 					const selectForms = parseSelectOptions(options);
 
 					// Select appropriate form or fallback to other
-					replacement =
+					const selectedForm =
 						selectForms[strValue] ||
 						selectForms.other ||
 						selectForms.true ||
 						"";
+
+					// Process simple interpolations in the selected form (e.g., {gistId} inside select result)
+					replacement = selectedForm.replace(/\{(\w+)\}/g, (match, key) => {
+						return key in values ? String(values[key]) : match;
+					});
 				}
 
 				result += replacement;
