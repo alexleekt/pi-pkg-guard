@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-22
+
+### Fixed
+
+- **i18n**: Correct ICU MessageFormat nested brace parsing bug where plural expressions showed literal text like "other {packages}}" instead of proper plural forms
+- **Performance**: O(n²) → O(n) using sticky regex instead of string slicing in `formatMessage()`
+- **Code quality**: Deduplicated `parsePluralOptions`/`parseSelectOptions` into shared `parseIcuOptions` implementation
+
+## [0.7.0] - 2026-04-19
+
 ### Fixed
 
 - **i18n**: Removed 3 unused translation keys (`backup.gist_failed`, `config.path_default`, `config.gist_not_configured`) that were defined but never used
