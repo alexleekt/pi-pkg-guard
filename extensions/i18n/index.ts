@@ -175,9 +175,9 @@ function formatMessage(
 
 					// Select appropriate form or fallback to other
 					const selectedForm =
-						selectForms[strValue] ||
-						selectForms.other ||
-						selectForms.true ||
+						(strValue in selectForms ? selectForms[strValue] : undefined) ??
+						("other" in selectForms ? selectForms.other : undefined) ??
+						("true" in selectForms ? selectForms.true : undefined) ??
 						"";
 
 					// Process simple interpolations in the selected form (e.g., {gistId} inside select result)

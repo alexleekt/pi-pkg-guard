@@ -32,18 +32,21 @@
 		"LICENSE"
 	],
 	"scripts": {
-		"test": "node --test test/**/*.test.ts"
+		"test": "tsx --test test/**/*.test.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.0",
 		"@types/node": "^20.0.0",
+		"tsx": "^4.21.0",
 		"typescript": "^5.0.0"
 	},
 	"publishConfig": {
 		"access": "public"
 	},
 	"pi": {
-		"extensions": ["./extensions/index.ts"]
+		"extensions": [
+			"./extensions/index.ts"
+		]
 	},
 	"peerDependencies": {
 		"@mariozechner/pi-coding-agent": "*",
