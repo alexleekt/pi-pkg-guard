@@ -1,8 +1,8 @@
 # Agent Guidelines: pi-pkg-guard
 
 **Scope:** Pi extension development and maintenance  
-**Last Updated:** 2026-04-19  
-**Version:** 1.0
+**Last Updated:** 2026-04-22  
+**Version:** 1.1
 
 ---
 
@@ -321,6 +321,30 @@ function isBashToolInput(input: unknown): input is { command?: string } {
 4. Check for regressions (run all tests)
 5. Update CHANGELOG.md
 
+### i18n/ICU MessageFormat Changes
+
+The extension uses ICU MessageFormat for pluralization and select expressions. When modifying i18n:
+
+```typescript
+// ✅ DO: Use proper ICU plural syntax
+"scan.success": "✓ Registered {count} orphaned {count, plural, one {package} other {packages}} with pi:"
+
+// ✅ DO: Test plural forms with count=1 and count>1
+// The i18n formatter uses a custom parser that handles nested braces
+
+// ⚠️ WARNING: ICU expressions have nested braces - regex patterns must handle depth
+// The formatMessage() function uses character-by-character scanning with brace depth tracking
+```
+
+**Testing i18n changes:**
+```bash
+# Run i18n key validation
+npm test
+
+# Test plural formatting manually
+npx tsx -e "import { t } from './extensions/i18n/index.js'; console.log(t('scan.success', { count: 1 }));"
+```
+
 ### Updating Dependencies
 
 - Ask before adding new dependencies
@@ -357,6 +381,9 @@ function isBashToolInput(input: unknown): input is { command?: string } {
 | File | Purpose |
 |------|---------|
 | `extensions/index.ts` | Main extension code |
+| `extensions/i18n/index.ts` | i18n system with ICU MessageFormat support |
+| `extensions/i18n/en-US.ts` | English translations |
+| `extensions/i18n/types.ts` | Translation type definitions |
 | `package.json` | NPM configuration |
 | `README.md` | User documentation |
 | `CHANGELOG.md` | Version history |

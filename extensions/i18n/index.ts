@@ -21,38 +21,79 @@ const translations: Map<string, Partial<TranslationDict>> = new Map([
 ]);
 
 /**
- * Parse plural options from ICU MessageFormat
+ * Parse ICU options (plural or select) from options string
+ * Pattern: key {content} key2 {content2}
+ * Handles nested braces within content.
  */
-function parsePluralOptions(options: string): Record<string, string> {
-	const optionPattern = /(\w+)\s*\{([^}]*)\}/g;
-	const pluralForms: Record<string, string> = {};
+function parseIcuOptions(options: string): Record<string, string> {
+	const forms: Record<string, string> = {};
+	let idx = 0;
 
-	let optionMatch: RegExpExecArray | null = optionPattern.exec(options);
-	while (optionMatch !== null) {
-		const [, key, content] = optionMatch;
-		pluralForms[key] = content;
-		optionMatch = optionPattern.exec(options);
+	while (idx < options.length) {
+		// Skip whitespace
+		while (idx < options.length && /\s/.test(options[idx])) {
+			idx++;
+		}
+
+		if (idx >= options.length) break;
+
+		// Read key (word characters, or =0, =1, etc. for explicit values)
+		const keyMatch = options.slice(idx).match(/^(\w+|=[0-9]+)/);
+		if (!keyMatch) break;
+
+		const key = keyMatch[1];
+		idx += keyMatch[0].length;
+
+		// Skip whitespace before opening brace
+		while (idx < options.length && /\s/.test(options[idx])) {
+			idx++;
+		}
+
+		// Expect opening brace
+		if (idx >= options.length || options[idx] !== "{") {
+			break; // Malformed, stop parsing
+		}
+		idx++; // Skip opening brace
+
+		// Extract content with nested brace handling
+		let depth = 1;
+		const contentStart = idx;
+
+		while (idx < options.length && depth > 0) {
+			const char = options[idx];
+			if (char === "{") {
+				depth++;
+			} else if (char === "}") {
+				depth--;
+			}
+			idx++;
+		}
+
+		if (depth === 0) {
+			// Successfully found matching closing brace
+			// idx now points past the closing brace, so content ends at idx - 1
+			forms[key] = options.slice(contentStart, idx - 1);
+		}
 	}
 
-	return pluralForms;
+	return forms;
 }
+
+// Aliases for semantic clarity
+const parsePluralOptions = parseIcuOptions;
+const parseSelectOptions = parseIcuOptions;
 
 /**
- * Parse select options from ICU MessageFormat
+ * Check if string at position matches ICU pattern start: {varName, plural/select,
+ * Returns match array or null. Uses sticky flag for O(1) matching.
  */
-function parseSelectOptions(options: string): Record<string, string> {
-	const optionPattern = /(\w+)\s*\{([^}]*)\}/g;
-	const selectForms: Record<string, string> = {};
+const icuStartPattern = /\{(\w+),\s*(plural|select),\s*/y;
 
-	let optionMatch: RegExpExecArray | null = optionPattern.exec(options);
-	while (optionMatch !== null) {
-		const [, key, content] = optionMatch;
-		selectForms[key] = content;
-		optionMatch = optionPattern.exec(options);
-	}
-
-	return selectForms;
-}
+/**
+ * Check for simple interpolation: {varName}
+ * Uses sticky flag for O(1) matching.
+ */
+const simpleInterpPattern = /\{(\w+)\}/y;
 
 /**
  * Parse and format an ICU MessageFormat string
@@ -61,6 +102,8 @@ function parseSelectOptions(options: string): Record<string, string> {
  * - Simple interpolation: {name}
  * - Plural forms: {count, plural, one {# item} other {# items}}
  * - Select: {gender, select, male {he} female {she} other {they}}
+ *
+ * Performance: O(n) - single pass with no string slicing
  */
 function formatMessage(
 	message: string,
@@ -68,54 +111,99 @@ function formatMessage(
 ): string {
 	if (!message) return "";
 
-	// Handle ICU plural and select patterns
-	// Pattern: {varName, plural, one {...} other {...}}
-	// Pattern: {varName, select, value1 {...} value2 {...}}
-	const icuPattern = /\{(\w+),\s*(plural|select),\s*([^}]+)\}/g;
+	let result = "";
+	let idx = 0;
 
-	return message
-		.replace(icuPattern, (match, varName, type, options) => {
-			const value = values[varName];
+	while (idx < message.length) {
+		// Look for ICU plural/select pattern using sticky regex (no slicing)
+		icuStartPattern.lastIndex = idx;
+		const icuMatch = icuStartPattern.exec(message);
 
-			if (type === "plural") {
-				const numValue =
-					typeof value === "number"
-						? value
-						: Number.parseInt(String(value), 10) || 0;
+		// With sticky flag (y), match must be at lastIndex, so no need to check index
+		if (icuMatch) {
+			const fullMatch = icuMatch[0];
+			const varName = icuMatch[1];
+			const type = icuMatch[2];
+			const optionsStart = idx + fullMatch.length;
 
-				const pluralForms = parsePluralOptions(options);
+			// Extract options with nested brace handling
+			let depth = 1;
+			let optionsEnd = optionsStart;
 
-				// Select appropriate form
-				let form = pluralForms.other || "";
+			while (optionsEnd < message.length && depth > 0) {
+				const char = message[optionsEnd];
+				if (char === "{") {
+					depth++;
+				} else if (char === "}") {
+					depth--;
+				}
+				optionsEnd++;
+			}
 
-				if (numValue === 0 && "=0" in pluralForms) {
-					form = pluralForms["=0"];
-				} else if (numValue === 1 && "one" in pluralForms) {
-					form = pluralForms.one;
-				} else if ("other" in pluralForms) {
-					form = pluralForms.other;
+			if (depth === 0) {
+				// Successfully found matching closing brace
+				const options = message.slice(optionsStart, optionsEnd - 1);
+				const value = values[varName];
+				let replacement = "";
+
+				if (type === "plural") {
+					const numValue =
+						typeof value === "number"
+							? value
+							: Number.parseInt(String(value), 10) || 0;
+
+					const pluralForms = parsePluralOptions(options);
+
+					// Select appropriate form
+					let form = pluralForms.other || "";
+
+					if (numValue === 0 && "=0" in pluralForms) {
+						form = pluralForms["=0"];
+					} else if (numValue === 1 && "one" in pluralForms) {
+						form = pluralForms.one;
+					} else if ("other" in pluralForms) {
+						form = pluralForms.other;
+					}
+
+					// Replace # with the number
+					replacement = form.replace(/#/g, String(numValue));
 				}
 
-				// Replace # with the number
-				return form.replace(/#/g, String(numValue));
+				if (type === "select") {
+					const strValue = String(value);
+					const selectForms = parseSelectOptions(options);
+
+					// Select appropriate form or fallback to other
+					replacement =
+						selectForms[strValue] ||
+						selectForms.other ||
+						selectForms.true ||
+						"";
+				}
+
+				result += replacement;
+				idx = optionsEnd;
+				continue;
 			}
+			// Malformed ICU - unmatched brace, fall through to add chars one by one
+		}
 
-			if (type === "select") {
-				const strValue = String(value);
-				const selectForms = parseSelectOptions(options);
+		// Check for simple interpolation using sticky regex (no slicing)
+		simpleInterpPattern.lastIndex = idx;
+		const simpleMatch = simpleInterpPattern.exec(message);
 
-				// Select appropriate form or fallback to other
-				return (
-					selectForms[strValue] || selectForms.other || selectForms.true || ""
-				);
-			}
+		// With sticky flag (y), match must be at lastIndex, so no need to check index
+		if (simpleMatch) {
+			const key = simpleMatch[1];
+			result += key in values ? String(values[key]) : simpleMatch[0];
+			idx += simpleMatch[0].length;
+		} else {
+			result += message[idx];
+			idx++;
+		}
+	}
 
-			return match;
-		})
-		.replace(/\{(\w+)\}/g, (match, key) => {
-			// Simple interpolation
-			return key in values ? String(values[key]) : match;
-		});
+	return result;
 }
 
 /**
