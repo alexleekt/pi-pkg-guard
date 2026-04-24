@@ -9,8 +9,9 @@ import type { TranslationDict } from "./types.js";
 
 export const en_US: TranslationDict = {
 	// Startup / Status messages
-	"status.orphaned_packages":
-		"{count, plural, one {# orphaned pi package} other {# orphaned pi packages}}. Run /package-guard",
+	"status.unregistered_packages":
+		"{count, plural, one {# unregistered pi package} other {# unregistered pi packages}}. Run /package-guard",
+	"status.all_registered": "✓ All pi packages are registered",
 
 	// npm Guard
 	"npm_guard.warning":
@@ -18,7 +19,7 @@ export const en_US: TranslationDict = {
 
 	// Command menu
 	"menu.title": "Package Guard",
-	"menu.scan": "Find orphaned packages",
+	"menu.scan": "Find unregistered packages",
 	"menu.backup": "Save backup to file + Gist",
 	"menu.restore": "Restore packages from backup",
 	"menu.change_path": "Change where backups are saved",
@@ -33,13 +34,16 @@ export const en_US: TranslationDict = {
 	"menu.exit": "Exit",
 
 	// Scan / Run
-	"scan.no_orphans":
-		"✓ All pi packages are registered. No orphaned packages found.",
-	"scan.found_orphans":
-		"Found {count} orphaned {count, plural, one {package} other {packages}}:",
+	"scan.no_unregistered":
+		"✓ All pi packages are registered. No unregistered packages found.",
+	"scan.found_unregistered":
+		"Found {count} unregistered {count, plural, one {package} other {packages}}:",
 	"scan.success":
-		"✓ Registered {count} orphaned {count, plural, one {package} other {packages}} with pi:",
+		"✓ Registered {count} unregistered {count, plural, one {package} other {packages}} with pi:",
 	"scan.reload_hint": "\n\nRun /reload to activate the registered packages.",
+	"scan.analyzing": "Scanning npm packages...",
+	"scan.reload_now": "[Reload now] Activate registered packages",
+	"scan.reload_later": "[Later] I'll reload manually",
 
 	// Backup
 	"backup.saving": "Saving backup...",
@@ -49,9 +53,13 @@ export const en_US: TranslationDict = {
 	"backup.gist_success":
 		"✓ Synced to GitHub Gist:\n  https://gist.github.com/{gistId}",
 	"backup.gist_warning": "✓ Local backup saved\n✗ Gist sync failed:\n{error}",
+	"backup.gist_skipped": "✓ Local backup saved (Gist sync not configured)",
+	"backup.gist_url_missing": "Gist URL not configured",
 
 	// Restore
 	"restore.reading": "Reading backup...",
+	"restore.local_failed_trying_gist":
+		"Local backup not found, trying GitHub Gist...",
 	"restore.invalid_path":
 		"✗ Invalid backup path: {path}.\n\nPath must be within ~/.pi/agent/ or a temporary directory.",
 	"restore.no_backup":
@@ -103,23 +111,23 @@ export const en_US: TranslationDict = {
 	// Help
 	"help.title": "# Package Guard",
 	"help.description":
-		'A lightweight pi extension that guards against the "orphaned package" trap.',
+		'A lightweight pi extension that guards against the "unregistered package" trap.',
 	"help.what_it_does": "## What It Does",
 	"help.features": [
-		"1. **Check & Register**: Finds orphaned packages and registers them with pi",
+		"1. **Check & Register**: Finds unregistered packages and registers them with pi",
 		"2. **Backup**: Save your package list locally or to a GitHub Gist",
 		"3. **Restore**: Recover packages from backup on a new machine",
 		"4. **Configure**: Set backup paths and GitHub Gist settings",
 	],
 	"help.usage": "## Usage",
-	"help.avoid_orphans":
-		'**When you install pi extensions via npm directly, they become "orphaned":**',
+	"help.avoid_unregistered":
+		'**When you install pi extensions via npm directly, they become "unregistered":**',
 	"help.preferred_command": "pi install npm:pi-token-burden  Use this instead",
 	"help.avoid_command": "npm install -g pi-token-burden  Avoid this",
 	"help.explanation":
-		"Orphaned packages are installed but not tracked by pi. This extension\ndetects and helps fix that automatically.",
+		"Unregistered packages are installed but not tracked by pi. This extension\ndetects and helps fix that automatically.",
 
 	// Command registration
 	"command.description":
-		"Package Guard - manage orphaned packages, backup, and restore",
+		"Package Guard - manage unregistered packages, backup, and restore",
 };

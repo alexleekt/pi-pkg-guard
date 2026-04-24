@@ -22,7 +22,7 @@ interface PiSettings {
 	extensions?: string[];
 }
 
-interface GuardConfig {
+interface ExtensionSettings {
 	backupPath?: string;
 	gistId?: string;
 	gistEnabled?: boolean;
@@ -46,7 +46,7 @@ function isPiSettings(value: unknown): value is PiSettings {
 	return true;
 }
 
-function isGuardConfig(value: unknown): value is GuardConfig {
+function isExtensionSettings(value: unknown): value is ExtensionSettings {
 	if (typeof value !== "object" || value === null) return false;
 	if (Array.isArray(value)) return false;
 	const candidate = value as Record<string, unknown>;
@@ -195,34 +195,34 @@ describe("isPiSettings", () => {
 	});
 });
 
-describe("isGuardConfig", () => {
+describe("isExtensionSettings", () => {
 	describe("valid inputs (should return true)", () => {
 		it("accepts empty object", () => {
-			assert.strictEqual(isGuardConfig({}), true);
+			assert.strictEqual(isExtensionSettings({}), true);
 		});
 
 		it("accepts object with backupPath", () => {
 			assert.strictEqual(
-				isGuardConfig({ backupPath: "/home/user/.pi/agent/backup.json" }),
+				isExtensionSettings({ backupPath: "/home/user/.pi/agent/backup.json" }),
 				true,
 			);
 		});
 
 		it("accepts object with gistId", () => {
-			assert.strictEqual(isGuardConfig({ gistId: "abc123def456" }), true);
+			assert.strictEqual(isExtensionSettings({ gistId: "abc123def456" }), true);
 		});
 
 		it("accepts object with gistEnabled", () => {
-			assert.strictEqual(isGuardConfig({ gistEnabled: true }), true);
+			assert.strictEqual(isExtensionSettings({ gistEnabled: true }), true);
 		});
 
 		it("accepts object with gistEnabled false", () => {
-			assert.strictEqual(isGuardConfig({ gistEnabled: false }), true);
+			assert.strictEqual(isExtensionSettings({ gistEnabled: false }), true);
 		});
 
 		it("accepts object with all properties", () => {
 			assert.strictEqual(
-				isGuardConfig({
+				isExtensionSettings({
 					backupPath: "/home/user/.pi/agent/backup.json",
 					gistId: "abc123def456",
 					gistEnabled: true,
@@ -234,58 +234,58 @@ describe("isGuardConfig", () => {
 
 	describe("invalid types (should return false)", () => {
 		it("rejects null", () => {
-			assert.strictEqual(isGuardConfig(null), false);
+			assert.strictEqual(isExtensionSettings(null), false);
 		});
 
 		it("rejects undefined", () => {
-			assert.strictEqual(isGuardConfig(undefined), false);
+			assert.strictEqual(isExtensionSettings(undefined), false);
 		});
 
 		it("rejects array", () => {
-			assert.strictEqual(isGuardConfig([]), false);
+			assert.strictEqual(isExtensionSettings([]), false);
 		});
 
 		it("rejects string", () => {
-			assert.strictEqual(isGuardConfig("config"), false);
+			assert.strictEqual(isExtensionSettings("config"), false);
 		});
 
 		it("rejects number", () => {
-			assert.strictEqual(isGuardConfig(42), false);
+			assert.strictEqual(isExtensionSettings(42), false);
 		});
 	});
 
 	describe("edge cases (should return false)", () => {
 		it("rejects backupPath as number", () => {
-			assert.strictEqual(isGuardConfig({ backupPath: 123 }), false);
+			assert.strictEqual(isExtensionSettings({ backupPath: 123 }), false);
 		});
 
 		it("rejects backupPath as null", () => {
-			assert.strictEqual(isGuardConfig({ backupPath: null }), false);
+			assert.strictEqual(isExtensionSettings({ backupPath: null }), false);
 		});
 
 		it("rejects gistId as number", () => {
-			assert.strictEqual(isGuardConfig({ gistId: 123456 }), false);
+			assert.strictEqual(isExtensionSettings({ gistId: 123456 }), false);
 		});
 
 		it("rejects gistId as null", () => {
-			assert.strictEqual(isGuardConfig({ gistId: null }), false);
+			assert.strictEqual(isExtensionSettings({ gistId: null }), false);
 		});
 
 		it("rejects gistEnabled as string", () => {
-			assert.strictEqual(isGuardConfig({ gistEnabled: "true" }), false);
+			assert.strictEqual(isExtensionSettings({ gistEnabled: "true" }), false);
 		});
 
 		it("rejects gistEnabled as number", () => {
-			assert.strictEqual(isGuardConfig({ gistEnabled: 1 }), false);
+			assert.strictEqual(isExtensionSettings({ gistEnabled: 1 }), false);
 		});
 
 		it("rejects gistEnabled as null", () => {
-			assert.strictEqual(isGuardConfig({ gistEnabled: null }), false);
+			assert.strictEqual(isExtensionSettings({ gistEnabled: null }), false);
 		});
 
 		it("accepts empty string gistId", () => {
 			// Empty string is still a valid string type
-			assert.strictEqual(isGuardConfig({ gistId: "" }), true);
+			assert.strictEqual(isExtensionSettings({ gistId: "" }), true);
 		});
 	});
 });

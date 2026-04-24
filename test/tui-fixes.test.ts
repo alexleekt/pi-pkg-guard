@@ -13,15 +13,15 @@ import { describe, it } from "node:test";
 // Types and Constants (minimal implementations for testing)
 // ============================================================================
 
-const STATUS_KEY = "pi-pkg-guard:orphaned-packages";
+const STATUS_KEY = "pi-pkg-guard:unregistered-packages";
 
 // Test message constants - must stay in sync with actual translation values
-const TEST_STATUS_MESSAGE = "2 orphaned pi packages. Run /package-guard";
-const TEST_ORPHAN_MESSAGE = "2 orphaned pi packages";
+const TEST_STATUS_MESSAGE = "2 unregistered pi packages. Run /package-guard";
+const TEST_UNREGISTERED_MESSAGE = "2 unregistered pi packages";
 
-interface PackageDiff {
-	hasOrphans: boolean;
-	orphaned: string[];
+interface PackageStatus {
+	hasUnregistered: boolean;
+	unregistered: string[];
 }
 
 interface MockUI {
@@ -53,14 +53,14 @@ describe("Status Lifecycle", () => {
 			},
 		};
 
-		// Simulate session_start with orphans
-		const diff: PackageDiff = {
-			hasOrphans: true,
-			orphaned: ["pi-test", "pi-demo"],
+		// Simulate session_start with unregistered packages
+		const status: PackageStatus = {
+			hasUnregistered: true,
+			unregistered: ["pi-test", "pi-demo"],
 		};
 
 		// Replicate the session_start handler logic
-		if (diff.hasOrphans) {
+		if (status.hasUnregistered) {
 			mockCtx.ui.setStatus(STATUS_KEY, TEST_STATUS_MESSAGE);
 		} else {
 			mockCtx.ui.setStatus(STATUS_KEY);
@@ -84,15 +84,15 @@ describe("Status Lifecycle", () => {
 			},
 		};
 
-		// Simulate session_start without orphans
-		const diff: PackageDiff = {
-			hasOrphans: false,
-			orphaned: [],
+		// Simulate session_start without unregistered packages
+		const status: PackageStatus = {
+			hasUnregistered: false,
+			unregistered: [],
 		};
 
 		// Replicate the session_start handler logic
-		if (diff.hasOrphans) {
-			mockCtx.ui.setStatus(STATUS_KEY, "orphaned message");
+		if (status.hasUnregistered) {
+			mockCtx.ui.setStatus(STATUS_KEY, "unregistered message");
 		} else {
 			mockCtx.ui.setStatus(STATUS_KEY);
 		}
@@ -115,16 +115,16 @@ describe("Status Lifecycle", () => {
 			},
 		};
 
-		// First call: has orphans
-		mockCtx.ui.setStatus(STATUS_KEY, TEST_ORPHAN_MESSAGE);
+		// First call: has unregistered packages
+		mockCtx.ui.setStatus(STATUS_KEY, TEST_UNREGISTERED_MESSAGE);
 
-		// Second call: orphans resolved
+		// Second call: unregistered packages resolved
 		mockCtx.ui.setStatus(STATUS_KEY);
 
 		// Assert: status was set then cleared
 		assert.strictEqual(statusCalls.length, 2);
 		assert.strictEqual(statusCalls[0].key, STATUS_KEY);
-		assert.strictEqual(statusCalls[0].message, TEST_ORPHAN_MESSAGE);
+		assert.strictEqual(statusCalls[0].message, TEST_UNREGISTERED_MESSAGE);
 		assert.strictEqual(statusCalls[1].key, STATUS_KEY);
 		assert.strictEqual(statusCalls[1].message, undefined);
 	});
@@ -153,7 +153,7 @@ describe("Gist Fallback Notification", () => {
 		const config = { gistId: "abc123", gistEnabled: true };
 		const isGhInstalled = true;
 
-		// Replicate the handleRestore logic for local backup failure
+		// Replicate the executeRestore logic for local backup failure
 		// NOTE: This message must stay in sync with translation key "restore.local_failed_trying_gist"
 		const FALLBACK_MESSAGE = "Local backup not found, trying GitHub Gist...";
 		if (!localBackupExists) {

@@ -14,7 +14,7 @@
 ├─────────────────────────────────────────────────────┤
 │ MENU ZONE (Chatbox - Navigable)                     │
 │ ═══ Package Operations ═══                          │
-│ > Find orphaned packages                            │
+│ > Find unregistered packages                            │
 │   Save backup to file + Gist                        │
 │   Restore packages from backup                      │
 │                                                     │
@@ -54,7 +54,7 @@
 ### Anti-Pattern: Indentation for Grouping
 ```
 ❌ DON'T: Indentation creates navigation confusion
-  Find orphaned packages
+  Find unregistered packages
     Save backup
     Restore backup
   Change path       ← User thinks Tab key needed
@@ -66,7 +66,7 @@
 ```
 ✅ DO: Clear sections with separator lines
 ═══ Package Operations ═══
-Find orphaned packages
+Find unregistered packages
 Save backup to file + Gist
 Restore packages from backup
 
@@ -144,7 +144,7 @@ User opens /package-guard
 ```typescript
 const options = [
   "═══ Package Operations ═══",
-  "Find orphaned packages",
+  "Find unregistered packages",
   "Save backup to file + Gist",
   "Restore packages from backup",
   "",

@@ -8,10 +8,10 @@
  * ```typescript
  * import {
  *   isPiSettings,
- *   isBackupData,
+ *   isPackageSnapshot,
  *   extractGistId,
- *   analyzePackages,
- *   syncOrphanedPackages,
+ *   checkRegistrationStatus,
+ *   registerPackages,
  * } from "pi-pkg-guard/extensions/api.js";
  *
  * // Validate settings
@@ -25,28 +25,27 @@
  *   timestamp: "2026-04-23",
  *   npmPackages: ["pi-foo"],
  *   registeredPackages: [],
- *   orphanedPackages: ["pi-foo"]
+ *   unregisteredPackages: ["pi-foo"]
  * };
- * if (isBackupData(backup)) {
+ * if (isPackageSnapshot(backup)) {
  *   console.log("Valid backup structure");
  * }
  *
  * // Analyze packages
- * const diff = analyzePackages();
- * if (diff.hasOrphans) {
- *   console.log(`Found ${diff.orphaned.length} orphaned packages`);
- *   syncOrphanedPackages(diff);
+ * const status = checkRegistrationStatus();
+ * if (status.hasUnregistered) {
+ *   console.log(`Found ${status.unregistered.length} unregistered packages`);
+ *   registerPackages(status);
  * }
  * ```
  */
 
 // Type Guards - Runtime validation
 export {
-	isBackupData,
+	isPackageSnapshot,
 	isBashToolInput,
-	isGuardConfig,
+	isExtensionSettings,
 	isPiSettings,
-	validateGuardConfig,
 } from "./index.js";
 
 // Validation utilities
@@ -66,8 +65,8 @@ export {
 export {
 	getNpmGlobalPackages,
 	readPiSettings,
-	analyzePackages,
-	syncOrphanedPackages,
+	checkRegistrationStatus,
+	registerPackages,
 } from "./index.js";
 
 // Gist operations
@@ -81,9 +80,12 @@ export {
 
 // Types
 export type {
-	PackageDiff,
+	PackageStatus,
 	PiSettings,
+	ExtensionSettings,
+	PackageSnapshot,
+	// Legacy type aliases for backward compatibility
+	PackageDiff,
 	GuardConfig,
 	BackupData,
-	ConfigValidationResult,
 } from "./index.js";

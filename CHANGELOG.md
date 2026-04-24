@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-23
+
+### Changed
+
+- **Naming**: Renamed core types for semantic clarity:
+  - `PackageDiff` → `PackageStatus` (with `@deprecated` alias for backward compatibility)
+  - `GuardConfig` → `ExtensionSettings` (with `@deprecated` alias)
+  - `BackupData` → `PackageSnapshot` (with `@deprecated` alias)
+  - `syncOrphanedPackages()` → `registerPackages()`
+  - `analyzePackages()` → `checkRegistrationStatus()`
+  - `orphaned` → `unregistered` throughout codebase and documentation
+- **Documentation**: Complete reorganization:
+  - Split monolithic docs into 5 epics with user stories and acceptance criteria
+  - Created `user-guides/` for task-oriented documentation
+  - Created `reference/` for technical lookup
+  - Created `development/` for contributor documentation
+  - Added architecture decisions document (naming RFC)
+  - Cleaned up archive/ to retain only essential historical docs
+
+### Added
+
+- **Test coverage**: 104 new tests across 5 suites:
+  - `session-start.test.ts` - Startup detection and package analysis
+  - `npm-guard.test.ts` - NPM install interception patterns
+  - `restore-workflow.test.ts` - Selective restore operations
+  - `gist-operations.test.ts` - Gist create/delete/sync
+  - `menu-navigation.test.ts` - Menu UI navigation and help display
+- **Documentation**: 32 new documentation files with traceability mapping
+
+### Fixed
+
+- **Test coverage**: Addressed all 5 documented coverage gaps from traceability matrix
+- **Documentation**: i18n key migration guide added to contributing docs
+
 ## [0.8.2] - 2026-04-23
 
 ### Fixed

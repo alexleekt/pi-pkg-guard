@@ -7,7 +7,7 @@
 
 export interface TranslationDict {
 	// Startup / Status messages
-	"status.orphaned_packages": string;
+	"status.unregistered_packages": string;
 	"status.all_registered": string;
 
 	// npm Guard
@@ -30,8 +30,8 @@ export interface TranslationDict {
 	"menu.exit": string;
 
 	// Scan / Run
-	"scan.no_orphans": string;
-	"scan.found_orphans": string;
+	"scan.no_unregistered": string;
+	"scan.found_unregistered": string;
 	"scan.success": string;
 	"scan.reload_hint": string;
 	"scan.analyzing": string;
@@ -96,7 +96,7 @@ export interface TranslationDict {
 	"help.what_it_does": string;
 	"help.features": string[];
 	"help.usage": string;
-	"help.avoid_orphans": string;
+	"help.avoid_unregistered": string;
 	"help.preferred_command": string;
 	"help.avoid_command": string;
 	"help.explanation": string;

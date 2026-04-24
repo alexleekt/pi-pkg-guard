@@ -17,7 +17,7 @@ import { describe, it } from "node:test";
 
 // Import the formatMessage function - need to test the internal implementation
 // We'll import from the i18n module and test via t() function
-import { initializeI18n, t } from "../extensions/i18n/index.ts";
+import { initializeI18n, t } from "../extensions/i18n/index.js";
 
 // Initialize i18n before tests
 initializeI18n();
@@ -39,27 +39,27 @@ describe("ICU MessageFormat Parser", () => {
 	describe("Plural Forms", () => {
 		it("should use 'one' form for count=1", () => {
 			const result = t("scan.success", { count: 1 });
-			assert(result.includes("1 orphaned package"));
+			assert(result.includes("1 unregistered package"));
 			assert(!result.includes("packages}"));
 			assert(!result.includes("other"));
 		});
 
 		it("should use 'other' form for count>1", () => {
 			const result = t("scan.success", { count: 5 });
-			assert(result.includes("5 orphaned packages"));
+			assert(result.includes("5 unregistered packages"));
 			assert(!result.includes("other}"));
 			assert(!result.includes("{packages}"));
 		});
 
 		it("should handle count=0 with 'other' form", () => {
-			const result = t("scan.found_orphans", { count: 0 });
-			assert(result.includes("0 orphaned packages"));
+			const result = t("scan.found_unregistered", { count: 0 });
+			assert(result.includes("0 unregistered packages"));
 			assert(!result.includes("other}"));
 		});
 
 		it("should handle large counts", () => {
 			const result = t("scan.success", { count: 999 });
-			assert(result.includes("999 orphaned packages"));
+			assert(result.includes("999 unregistered packages"));
 		});
 
 		it("should not show literal ICU syntax in output (regression test)", () => {
@@ -94,25 +94,25 @@ describe("ICU MessageFormat Parser", () => {
 		it("should handle string count values", () => {
 			const result = t("scan.success", { count: "5" as unknown as number });
 			// Should parse string "5" as number 5
-			assert(result.includes("5 orphaned packages"));
+			assert(result.includes("5 unregistered packages"));
 		});
 
 		it("should handle multiple ICU expressions in one message", () => {
-			const result = t("scan.found_orphans", { count: 3 });
-			// Contains both plural for "3 orphaned packages" and the list
-			assert(result.includes("3 orphaned packages"));
+			const result = t("scan.found_unregistered", { count: 3 });
+			// Contains both plural for "3 unregistered packages" and the list
+			assert(result.includes("3 unregistered packages"));
 		});
 	});
 
 	describe("Regression Tests", () => {
 		it("BUG: should not show 'other {packages}}' in plural output", () => {
-			// This was the exact bug: "✓ Registered 19 orphaned  other {packages}} with pi:"
+			// This was the exact bug: "✓ Registered 19 unregistered  other {packages}} with pi:"
 			const result = t("scan.success", { count: 19 });
 			assert(!result.includes("other {packages}"));
 			assert(!result.includes("{packages}"));
 			assert(!result.includes("one {package}"));
-			assert(!result.includes("# orphaned")); // # should be replaced with number
-			assert(result.includes("19 orphaned packages"));
+			assert(!result.includes("# unregistered")); // # should be replaced with number
+			assert(result.includes("19 unregistered packages"));
 		});
 
 		it("BUG: should handle select with nested variable interpolation", () => {

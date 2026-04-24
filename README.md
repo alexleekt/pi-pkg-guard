@@ -40,14 +40,18 @@ npm install -g pi-token-burden  # Installs to npm global
 
 ## Documentation
 
-| Language | Status | Link |
-|----------|--------|------|
-| English (US) | ✅ Complete | [Documentation](docs/en-US/README.md) |
+📚 **[View Documentation](docs/README.md)** — Complete documentation index
 
-**Getting Started:**
-- [Installation Guide](docs/en-US/INSTALL.md)
-- [Usage Guide](docs/en-US/USAGE.md)
-- [Contributing](docs/en-US/CONTRIBUTING.md) (includes translation guide)
+**Quick Links:**
+- [Getting Started](docs/user-guides/getting-started.md) — First time users
+- [Installation](docs/user-guides/installation.md) — Install options
+- [Usage Guide](docs/user-guides/usage.md) — Feature guide
+- [Contributing](docs/development/contributing.md) — Developer guide
+
+**Reference:**
+- [Architecture](docs/reference/architecture.md)
+- [API](docs/reference/api.md)
+- [Security Model](docs/reference/security.md)
 
 ---
 
@@ -71,7 +75,7 @@ just check     # Run all checks
 just release   # Create release
 ```
 
-See [Contributing Guide](docs/en-US/CONTRIBUTING.md) for details.
+See [Contributing Guide](docs/development/contributing.md) for details.
 
 ---
 
@@ -83,7 +87,7 @@ This project uses **GitHub Actions with Trusted Publishing** (OIDC) for automate
 just release        # Auto-detects version from package.json
 ```
 
-See full details in [Contributing Guide](docs/en-US/CONTRIBUTING.md#release-process).
+See full details in [Release Process](docs/development/release-process.md).
 
 ---
 

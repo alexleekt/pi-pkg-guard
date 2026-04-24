@@ -1,8 +1,8 @@
 # Agent Guidelines: pi-pkg-guard
 
 **Scope:** Pi extension development and maintenance  
-**Last Updated:** 2026-04-22  
-**Version:** 1.1
+**Last Updated:** 2026-04-23  
+**Version:** 1.2
 
 ---
 
@@ -175,6 +175,34 @@ npm uninstall -g pi-pkg-guard
 
 ## Release Process
 
+### Semantic Versioning
+
+This project follows [Semantic Versioning 2.0.0](https://semver.org/) with conventional commits:
+
+| Commit Type | Version Bump | Example |
+|-------------|--------------|---------|
+| `BREAKING CHANGE:` or `feat!:` | **MAJOR** (1.2.0 → 2.0.0) | API changes that break compatibility |
+| `feat:` | **MINOR** (1.2.0 → 1.3.0) | New features, backward compatible |
+| `fix:` | **PATCH** (1.2.0 → 1.2.1) | Bug fixes, backward compatible |
+| `docs:`, `style:`, `refactor:`, `test:`, `chore:` | **No bump** | Internal improvements |
+
+**Commit Message Format:**
+```
+type(scope): subject
+
+body (optional)
+
+BREAKING CHANGE: description (if applicable)
+```
+
+**Examples:**
+```bash
+feat(security): add Gist ID validation
+fix(i18n): handle empty string in select expressions
+docs(architecture): reorganize documentation structure
+refactor(naming): rename PackageDiff to PackageStatus
+```
+
 ### Automated CI/CD (Recommended)
 
 This project uses **GitHub Actions with Trusted Publishing** (OIDC-based) for automated npm publishing:
@@ -219,11 +247,50 @@ Monitor at: https://github.com/alexleekt/pi-pkg-guard/actions
 
 When preparing a release:
 
-1. Update version in `package.json`
-2. Add entry to `CHANGELOG.md`
-3. Run full test suite: `just check`
-4. Run `npm publish --dry-run` to verify package contents
-5. Create and push git tag to trigger publish workflow
+1. **Analyze commits since last tag** to determine version bump:
+   ```bash
+   # Find last tag
+   git describe --tags --abbrev=0
+   
+   # Check for breaking changes
+   git log v0.8.2..HEAD --format='%B' | grep -c 'BREAKING CHANGE'
+   
+   # Check for new features
+   git log v0.8.2..HEAD --format='%s' | grep -c '^feat'
+   
+   # Check for fixes
+   git log v0.8.2..HEAD --format='%s' | grep -c '^fix'
+   ```
+
+2. **Update version in `package.json`**
+
+3. **Add entry to `CHANGELOG.md`** following format:
+   ```markdown
+   ## [0.9.0] - 2026-04-23
+   
+   ### Changed
+   - Refactor: rename types for clarity (PackageDiff→PackageStatus, orphaned→unregistered)
+   - Documentation: reorganize docs into epics/, user-guides/, reference/, development/
+   
+   ### Added
+   - 104 new tests covering session start, npm guard, restore workflow, gist ops, menu nav
+   - Architecture decisions document (naming RFC)
+   
+   ### Fixed
+   - Test coverage gaps for all 5 documented traceability areas
+   ```
+
+4. **Run full test suite:** `just check`
+
+5. **Run `npm publish --dry-run`** to verify package contents
+
+6. **Create and push git tag** to trigger publish workflow:
+   ```bash
+   just release 0.9.0
+   # or manually:
+   git tag -a v0.9.0 -m "Release v0.9.0: naming refactor, docs reorg, test coverage"
+   git push origin v0.9.0
+   ```
 
 ### CI/CD Debugging (Important!)
 

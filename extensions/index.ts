@@ -44,28 +44,36 @@ let npmGlobalCacheTime = 0;
 // Types
 // =============================================================================
 
-interface PackageDiff {
-	orphaned: string[]; // In npm global, not in settings
-	hasOrphans: boolean;
+export interface PackageStatus {
+	unregistered: string[]; // In npm global, not in settings
+	hasUnregistered: boolean;
 }
 
-interface PiSettings {
+export interface PiSettings {
 	packages?: string[];
 	extensions?: string[];
 }
 
-interface GuardConfig {
+export interface ExtensionSettings {
 	backupPath?: string;
 	gistId?: string;
 	gistEnabled?: boolean;
 }
 
-interface BackupData {
+export interface PackageSnapshot {
 	timestamp: string;
 	npmPackages: string[];
 	registeredPackages: string[];
-	orphanedPackages: string[];
+	unregisteredPackages: string[];
 }
+
+// Legacy type aliases for backward compatibility
+/** @deprecated Use PackageStatus instead */
+export type PackageDiff = PackageStatus;
+/** @deprecated Use ExtensionSettings instead */
+export type GuardConfig = ExtensionSettings;
+/** @deprecated Use PackageSnapshot instead */
+export type BackupData = PackageSnapshot;
 
 // =============================================================================
 // Type Guards
@@ -89,7 +97,9 @@ export function isPiSettings(value: unknown): value is PiSettings {
 	return true;
 }
 
-export function isGuardConfig(value: unknown): value is GuardConfig {
+export function isExtensionSettings(
+	value: unknown,
+): value is ExtensionSettings {
 	if (typeof value !== "object" || value === null) return false;
 	if (Array.isArray(value)) return false;
 	const candidate = value as Record<string, unknown>;
@@ -120,10 +130,10 @@ export function isBashToolInput(input: unknown): input is { command?: string } {
 }
 
 /**
- * Validate that a value is a valid BackupData object.
+ * Validate that a value is a valid PackageSnapshot object.
  * Checks all required fields and their types.
  */
-export function isBackupData(value: unknown): value is BackupData {
+export function isPackageSnapshot(value: unknown): value is PackageSnapshot {
 	if (typeof value !== "object" || value === null) return false;
 	const v = value as Record<string, unknown>;
 
@@ -138,9 +148,9 @@ export function isBackupData(value: unknown): value is BackupData {
 	if (!Array.isArray(v.registeredPackages)) return false;
 	if (!v.registeredPackages.every((p) => typeof p === "string")) return false;
 
-	// Check orphanedPackages array
-	if (!Array.isArray(v.orphanedPackages)) return false;
-	if (!v.orphanedPackages.every((p) => typeof p === "string")) return false;
+	// Check unregisteredPackages array
+	if (!Array.isArray(v.unregisteredPackages)) return false;
+	if (!v.unregisteredPackages.every((p) => typeof p === "string")) return false;
 
 	return true;
 }
@@ -302,12 +312,12 @@ export function readPiSettings(): PiSettings {
 	}
 }
 
-function readGuardConfig(): GuardConfig {
+function readExtensionSettings(): ExtensionSettings {
 	try {
 		const settings = readPiSettings();
 		const config = (settings as Record<string, unknown>)[CONFIG_KEY];
 
-		if (!isGuardConfig(config)) {
+		if (!isExtensionSettings(config)) {
 			return {};
 		}
 
@@ -317,7 +327,7 @@ function readGuardConfig(): GuardConfig {
 	}
 }
 
-function writeGuardConfig(config: GuardConfig): void {
+function writeExtensionSettings(config: ExtensionSettings): void {
 	try {
 		const settings = readPiSettings();
 		(settings as Record<string, unknown>)[CONFIG_KEY] = config;
@@ -367,17 +377,17 @@ function writePiSettings(settings: PiSettings): void {
  * settings.json reads are acceptable for this non-critical, advisory operation.
  * The menu loop re-analyzes on each iteration for fresh state.
  */
-export function analyzePackages(): PackageDiff {
+export function checkRegistrationStatus(): PackageStatus {
 	const npmPackages = new Set(getNpmGlobalPackages());
 	const registeredPackages = new Set(getRegisteredPackages());
 
-	const orphaned = [...npmPackages].filter(
+	const unregistered = [...npmPackages].filter(
 		(pkg) => !registeredPackages.has(pkg),
 	);
 
 	return {
-		orphaned,
-		hasOrphans: orphaned.length > 0,
+		unregistered,
+		hasUnregistered: unregistered.length > 0,
 	};
 }
 
@@ -385,8 +395,8 @@ export function analyzePackages(): PackageDiff {
  * Sync orphaned packages to settings.json.
  * Adds npm: prefix to each orphaned package.
  */
-export function syncOrphanedPackages(diff: PackageDiff): void {
-	if (diff.orphaned.length === 0) return;
+export function registerPackages(status: PackageStatus): void {
+	if (status.unregistered.length === 0) return;
 
 	const settings = readPiSettings();
 	settings.packages = settings.packages || [];
@@ -394,7 +404,7 @@ export function syncOrphanedPackages(diff: PackageDiff): void {
 	// Normalize existing packages and track in Set for O(1) lookups
 	const existingPackages = new Set(settings.packages.map(normalizePackageName));
 
-	for (const pkg of diff.orphaned) {
+	for (const pkg of status.unregistered) {
 		if (!existingPackages.has(pkg)) {
 			settings.packages.push(`${NPM_PREFIX}${pkg}`);
 			existingPackages.add(pkg);
@@ -411,16 +421,16 @@ export function syncOrphanedPackages(diff: PackageDiff): void {
 /**
  * Create backup data object with current package state.
  */
-function createBackupData(): BackupData {
+function createPackageSnapshot(): PackageSnapshot {
 	const npmPackages = getNpmGlobalPackages();
 	const registeredPackages = getRegisteredPackages();
-	const diff = analyzePackages();
+	const status = checkRegistrationStatus();
 
 	return {
 		timestamp: new Date().toISOString(),
 		npmPackages,
 		registeredPackages,
-		orphanedPackages: diff.orphaned,
+		unregisteredPackages: status.unregistered,
 	};
 }
 
@@ -433,7 +443,7 @@ function saveLocalBackup(backupPath: string): void {
 			`Invalid backup path: ${backupPath}. Path must be within ~/.pi/agent/ or a temporary directory.`,
 		);
 	}
-	const data = createBackupData();
+	const data = createPackageSnapshot();
 	writeFileSync(backupPath, `${JSON.stringify(data, null, 2)}\n`);
 }
 
@@ -454,7 +464,7 @@ export function isGhInstalled(): boolean {
  */
 export async function syncGistBackup(
 	gistId: string,
-	data: BackupData,
+	data: PackageSnapshot,
 ): Promise<{ success: boolean; error?: string }> {
 	if (!isValidGistId(gistId)) {
 		return {
@@ -635,32 +645,32 @@ export async function getGistContent(
 // Unified Command Handler Functions
 // ===========================================================================
 
-async function handleRun(ctx: ExtensionCommandContext): Promise<void> {
-	const diff = analyzePackages();
+async function executeScan(ctx: ExtensionCommandContext): Promise<void> {
+	const status = checkRegistrationStatus();
 
-	if (!diff.hasOrphans) {
-		ctx.ui.notify(t("scan.no_orphans"), "info");
+	if (!status.hasUnregistered) {
+		ctx.ui.notify(t("scan.no_unregistered"), "info");
 		return;
 	}
 
 	ctx.ui.notify(
-		`${t("scan.found_orphans", {
-			count: diff.orphaned.length,
-		})}\n${diff.orphaned.map((p) => `  - ${p}`).join("\n")}`,
+		`${t("scan.found_unregistered", {
+			count: status.unregistered.length,
+		})}\n${status.unregistered.map((p) => `  - ${p}`).join("\n")}`,
 		"warning",
 	);
 
-	syncOrphanedPackages(diff);
+	registerPackages(status);
 
 	ctx.ui.notify(
-		`${t("scan.success", { count: diff.orphaned.length })}:\n${diff.orphaned.map((p) => `  - npm:${p}`).join("\n")}${t("scan.reload_hint")}`,
+		`${t("scan.success", { count: status.unregistered.length })}:\n${status.unregistered.map((p) => `  - npm:${p}`).join("\n")}${t("scan.reload_hint")}`,
 		"info",
 	);
 }
 
-async function handleBackup(ctx: ExtensionCommandContext): Promise<void> {
-	const config = readGuardConfig();
-	const data = createBackupData();
+async function executeBackup(ctx: ExtensionCommandContext): Promise<void> {
+	const config = readExtensionSettings();
+	const data = createPackageSnapshot();
 	const backupPath = config.backupPath || DEFAULT_BACKUP_PATH;
 
 	ctx.ui.setWorkingMessage(t("backup.saving"));
@@ -708,8 +718,8 @@ ${t("backup.gist_success", { gistId: config.gistId })}`,
 	}
 }
 
-async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
-	const config = readGuardConfig();
+async function executeRestore(ctx: ExtensionCommandContext): Promise<void> {
+	const config = readExtensionSettings();
 	const backupPath = config.backupPath || DEFAULT_BACKUP_PATH;
 
 	// Validate custom backup paths (default path is always safe)
@@ -721,7 +731,7 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 		return;
 	}
 
-	let backupData: BackupData | null = null;
+	let backupData: PackageSnapshot | null = null;
 	let backupSource = "local";
 
 	ctx.ui.setWorkingMessage(t("restore.reading"));
@@ -729,7 +739,7 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 	try {
 		const content = readFileSync(backupPath, "utf-8");
 		const parsed = JSON.parse(content) as unknown;
-		if (isBackupData(parsed)) {
+		if (isPackageSnapshot(parsed)) {
 			backupData = parsed;
 		}
 	} catch {
@@ -741,7 +751,7 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 			const result = await getGistContent(config.gistId);
 			if (result.success && result.content) {
 				const parsed = JSON.parse(result.content) as unknown;
-				if (isBackupData(parsed)) {
+				if (isPackageSnapshot(parsed)) {
 					backupData = parsed;
 					backupSource = "gist";
 				}
@@ -905,11 +915,13 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 	// ===========================================================================
 
 	pi.on("session_start", async (_event, ctx) => {
-		const diff = analyzePackages();
-		if (diff.hasOrphans) {
+		const status = checkRegistrationStatus();
+		if (status.hasUnregistered) {
 			ctx.ui.setStatus(
 				STATUS_KEY,
-				t("status.orphaned_packages", { count: diff.orphaned.length }),
+				t("status.unregistered_packages", {
+					count: status.unregistered.length,
+				}),
 			);
 		}
 	});
@@ -923,10 +935,10 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 		handler: async (_args, ctx) => {
 			while (true) {
 				// Read fresh config each iteration
-				const config = readGuardConfig();
+				const config = readExtensionSettings();
 				const ghInstalled = isGhInstalled();
 				const registeredPackages = getRegisteredPackages();
-				const diff = analyzePackages();
+				const status = checkRegistrationStatus();
 				const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
 
 				// Update STATUS ZONE (widget - non-selectable)
@@ -939,7 +951,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 					? `~${currentPath.slice(homedir().length)}`
 					: currentPath;
 				ctx.ui.setWidget("pi-pkg-guard:status", [
-					`📦 ${registeredPackages.length} registered │ ${diff.orphaned.length} orphaned │ 💾 ${displayPath} │ ${gistDisplay} │ ${syncDisplay} auto-sync`,
+					`📦 ${registeredPackages.length} registered │ ${status.unregistered.length} unregistered │ 💾 ${displayPath} │ ${gistDisplay} │ ${syncDisplay} auto-sync`,
 				]);
 
 				// Build MENU ZONE (selectable items only)
@@ -986,11 +998,11 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 
 				// Core operations
 				if (choice === t("menu.scan")) {
-					await handleRun(ctx);
+					await executeScan(ctx);
 				} else if (choice === t("menu.backup")) {
-					await handleBackup(ctx);
+					await executeBackup(ctx);
 				} else if (choice === t("menu.restore")) {
-					await handleRestore(ctx);
+					await executeRestore(ctx);
 				}
 				// Configuration: Path
 				else if (choice === t("menu.change_path")) {
@@ -1004,7 +1016,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 							? `${homedir()}${newPath.slice(1)}`
 							: newPath;
 						config.backupPath = expandedPath;
-						writeGuardConfig(config);
+						writeExtensionSettings(config);
 						ctx.ui.notify(t("config.path_set"), "info");
 					}
 				}
@@ -1019,7 +1031,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 						if (result.success && result.gistId) {
 							config.gistId = result.gistId;
 							config.gistEnabled = true;
-							writeGuardConfig(config);
+							writeExtensionSettings(config);
 							ctx.ui.notify(
 								t("config.gist_created", { gistId: result.gistId }),
 								"info",
@@ -1045,7 +1057,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 							} else {
 								config.gistId = extractGistId(trimmed);
 							}
-							writeGuardConfig(config);
+							writeExtensionSettings(config);
 							ctx.ui.notify(
 								config.gistId ? t("config.gist_set") : t("config.gist_cleared"),
 								"info",
@@ -1069,7 +1081,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 							} else {
 								config.gistId = extractGistId(trimmed);
 							}
-							writeGuardConfig(config);
+							writeExtensionSettings(config);
 							ctx.ui.notify(
 								config.gistId ? t("config.gist_set") : t("config.gist_cleared"),
 								"info",
@@ -1093,7 +1105,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 							if (result.success) {
 								config.gistId = undefined;
 								config.gistEnabled = undefined;
-								writeGuardConfig(config);
+								writeExtensionSettings(config);
 								ctx.ui.notify(t("config.gist_deleted"), "info");
 							} else {
 								ctx.ui.notify(
@@ -1115,7 +1127,7 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 					})
 				) {
 					config.gistEnabled = config.gistEnabled === false;
-					writeGuardConfig(config);
+					writeExtensionSettings(config);
 					ctx.ui.notify(
 						config.gistEnabled
 							? t("config.sync_enabled")

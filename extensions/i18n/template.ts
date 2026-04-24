@@ -12,8 +12,8 @@ import type { TranslationDict } from "./types.js";
 
 export const LOCALE_TEMPLATE: TranslationDict = {
 	// Startup / Status messages
-	"status.orphaned_packages":
-		"{count, plural, one {# orphaned pi package} other {# orphaned pi packages}}. Run /package-guard",
+	"status.unregistered_packages":
+		"{count, plural, one {# unregistered pi package} other {# unregistered pi packages}}. Run /package-guard",
 	"status.all_registered": "✓ All pi packages registered",
 
 	// npm Guard
@@ -37,12 +37,12 @@ export const LOCALE_TEMPLATE: TranslationDict = {
 	"menu.exit": "Exit",
 
 	// Scan / Run
-	"scan.no_orphans":
-		"✓ All pi packages are registered. No orphaned packages found.",
-	"scan.found_orphans":
-		"Found {count} orphaned {count, plural, one {package} other {packages}}:",
+	"scan.no_unregistered":
+		"✓ All pi packages are registered. No unregistered packages found.",
+	"scan.found_unregistered":
+		"Found {count} unregistered {count, plural, one {package} other {packages}}:",
 	"scan.success":
-		"✓ Registered {count} orphaned {count, plural, one {package} other {packages}} with pi:",
+		"✓ Registered {count} unregistered {count, plural, one {package} other {packages}} with pi:",
 	"scan.reload_hint": "\n\nRun /reload to activate the registered packages.",
 	"scan.analyzing": "Scanning npm packages...",
 	"scan.reload_now": "[Reload now] Activate registered packages",
@@ -115,23 +115,23 @@ export const LOCALE_TEMPLATE: TranslationDict = {
 	// Help
 	"help.title": "# Package Guard",
 	"help.description":
-		'A lightweight pi extension that guards against the "orphaned package" trap.',
+		'A lightweight pi extension that guards against the "unregistered package" trap.',
 	"help.what_it_does": "## What It Does",
 	"help.features": [
-		"1. **Scan & Register**: Automatically finds and registers orphaned packages (immediate action)",
+		"1. **Scan & Register**: Automatically finds and registers unregistered packages (immediate action)",
 		"2. **Backup**: Save packages locally. Gist sync only if previously configured",
 		"3. **Restore**: Review each package one-by-one before registering from backup",
 		"4. **Configure**: Set backup paths and GitHub Gist settings",
 	],
 	"help.usage": "## Usage",
-	"help.avoid_orphans":
-		'**When you install pi extensions via npm directly, they become "orphaned":**',
+	"help.avoid_unregistered":
+		'**When you install pi extensions via npm directly, they become "unregistered":**',
 	"help.preferred_command": "pi install npm:pi-token-burden  Use this instead",
 	"help.avoid_command": "npm install -g pi-token-burden  Avoid this",
 	"help.explanation":
-		"Orphaned packages are installed but not tracked by pi.\n\n**Important notes:**\n• Scan immediately registers found packages (no preview step)\n• Restore goes through packages one-by-one (interactive)\n• Backup to Gist only happens if you've configured a Gist ID\n• After registering packages, run /reload to activate them in pi",
+		"Unregistered packages are installed but not tracked by pi.\n\n**Important notes:**\n• Scan immediately registers found packages (no preview step)\n• Restore goes through packages one-by-one (interactive)\n• Backup to Gist only happens if you've configured a Gist ID\n• After registering packages, run /reload to activate them in pi",
 
 	// Command registration
 	"command.description":
-		"Package Guard - manage orphaned packages, backup, and restore",
+		"Package Guard - manage unregistered packages, backup, and restore",
 };

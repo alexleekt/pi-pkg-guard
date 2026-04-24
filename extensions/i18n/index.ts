@@ -219,8 +219,8 @@ function formatMessage(
  * @returns Translated and formatted string
  *
  * @example
- * t('status.orphaned_packages', { count: 3 })
- * // "3 orphaned pi packages. Run /package-guard"
+ * t('status.unregistered_packages', { count: 3 })
+ * // "3 unregistered pi packages. Run /package-guard"
  */
 export function t<K extends TranslationKey>(
 	key: K,
