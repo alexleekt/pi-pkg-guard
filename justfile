@@ -129,11 +129,11 @@ lint-actions:
 
 # Run all tests
 test:
-    node --test test/**/*.test.ts
+    npx tsx --test test/**/*.test.ts
 
 # Run tests in watch mode
 test-watch:
-    node --test --watch test/**/*.test.ts
+    npx tsx --test --watch test/**/*.test.ts
 
 # TypeScript type checking
 typecheck:

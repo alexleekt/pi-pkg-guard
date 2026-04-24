@@ -1,8 +1,8 @@
 import { exec, execSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
@@ -34,6 +34,11 @@ const DEFAULT_BACKUP_PATH = `${homedir()}/.pi/agent/package-guard-backup.json`;
 const PI_NAME_PATTERN = /(^pi-|-pi$|\/pi-)/;
 // Keywords that indicate a package is a pi extension
 const PI_KEYWORDS = ["pi-coding-agent", "pi-extension", "pi-package"];
+
+// NPM cache to prevent repeated execSync calls during menu loops
+const NPM_CACHE_TTL_MS = 5000; // 5 second cache
+let npmGlobalCache: string[] | null = null;
+let npmGlobalCacheTime = 0;
 
 // =============================================================================
 // Types
@@ -114,6 +119,32 @@ export function isBashToolInput(input: unknown): input is { command?: string } {
 	return true;
 }
 
+/**
+ * Validate that a value is a valid BackupData object.
+ * Checks all required fields and their types.
+ */
+export function isBackupData(value: unknown): value is BackupData {
+	if (typeof value !== "object" || value === null) return false;
+	const v = value as Record<string, unknown>;
+
+	// Check timestamp
+	if (typeof v.timestamp !== "string") return false;
+
+	// Check npmPackages array
+	if (!Array.isArray(v.npmPackages)) return false;
+	if (!v.npmPackages.every((p) => typeof p === "string")) return false;
+
+	// Check registeredPackages array
+	if (!Array.isArray(v.registeredPackages)) return false;
+	if (!v.registeredPackages.every((p) => typeof p === "string")) return false;
+
+	// Check orphanedPackages array
+	if (!Array.isArray(v.orphanedPackages)) return false;
+	if (!v.orphanedPackages.every((p) => typeof p === "string")) return false;
+
+	return true;
+}
+
 // =============================================================================
 // Gist Utilities
 // =============================================================================
@@ -142,7 +173,8 @@ export function extractGistId(input: string): string {
  * @returns true if the gist ID is valid and safe
  */
 export function isValidGistId(gistId: string): boolean {
-	return /^[a-f0-9]+$/i.test(gistId);
+	// Gist IDs are 32+ character hexadecimal strings
+	return /^[a-f0-9]{32,}$/i.test(gistId);
 }
 
 /**
@@ -153,13 +185,17 @@ export function isValidGistId(gistId: string): boolean {
  * @returns true if the path is within allowed directories
  */
 export function isValidBackupPath(backupPath: string): boolean {
-	const resolvedPath = join(backupPath);
+	const resolvedPath = resolve(backupPath);
 	const homeDir = homedir();
-	const allowedDirs = [join(homeDir, ".pi", "agent"), tmpdir()];
+	const allowedDirs = [
+		resolve(join(homeDir, ".pi", "agent")),
+		resolve(tmpdir()),
+	];
 
 	return allowedDirs.some(
 		(allowedDir) =>
-			resolvedPath === allowedDir || resolvedPath.startsWith(`${allowedDir}/`),
+			resolvedPath === allowedDir ||
+			resolvedPath.startsWith(`${allowedDir}${sep}`),
 	);
 }
 
@@ -196,6 +232,12 @@ export function hasPiExtensionKeyword(
 }
 
 export function getNpmGlobalPackages(): string[] {
+	// Check cache first
+	const now = Date.now();
+	if (npmGlobalCache && now - npmGlobalCacheTime < NPM_CACHE_TTL_MS) {
+		return npmGlobalCache;
+	}
+
 	try {
 		const output = execSync("npm list -g --json --depth=0", {
 			encoding: "utf-8",
@@ -214,7 +256,7 @@ export function getNpmGlobalPackages(): string[] {
 		}).trim();
 		const nodeModulesPath = `${globalPrefix}/lib/node_modules`;
 
-		return Object.keys(deps).filter(
+		const result = Object.keys(deps).filter(
 			(name) =>
 				// Match name patterns: pi-*, *-pi, @scope/pi-*
 				PI_NAME_PATTERN.test(name) &&
@@ -225,8 +267,17 @@ export function getNpmGlobalPackages(): string[] {
 				// Validate via package.json keywords (local read, no network)
 				hasPiExtensionKeyword(nodeModulesPath, name),
 		);
-	} catch {
-		// Silently fail - this is a non-critical operation
+
+		// Update cache
+		npmGlobalCache = result;
+		npmGlobalCacheTime = now;
+
+		return result;
+	} catch (error) {
+		// Log for debugging but don't break UI flow
+		if (process.env.DEBUG) {
+			console.error("[pi-pkg-guard] npm list failed:", error);
+		}
 		return [];
 	}
 }
@@ -311,6 +362,10 @@ function writePiSettings(settings: PiSettings): void {
 /**
  * Analyze packages to find orphaned pi extensions.
  * Orphaned = installed via npm but not registered in pi settings.
+ *
+ * Note: This is a point-in-time snapshot. Race conditions between npm and
+ * settings.json reads are acceptable for this non-critical, advisory operation.
+ * The menu loop re-analyzes on each iteration for fresh state.
  */
 export function analyzePackages(): PackageDiff {
 	const npmPackages = new Set(getNpmGlobalPackages());
@@ -336,10 +391,13 @@ export function syncOrphanedPackages(diff: PackageDiff): void {
 	const settings = readPiSettings();
 	settings.packages = settings.packages || [];
 
+	// Normalize existing packages and track in Set for O(1) lookups
+	const existingPackages = new Set(settings.packages.map(normalizePackageName));
+
 	for (const pkg of diff.orphaned) {
-		const npmRef = `${NPM_PREFIX}${pkg}`;
-		if (!settings.packages.includes(npmRef)) {
-			settings.packages.push(npmRef);
+		if (!existingPackages.has(pkg)) {
+			settings.packages.push(`${NPM_PREFIX}${pkg}`);
+			existingPackages.add(pkg);
 		}
 	}
 
@@ -415,9 +473,9 @@ export async function syncGistBackup(
 	}
 
 	try {
-		// Create temp file with the content
-		const randomId = randomBytes(8).toString("hex");
-		const tempFile = join(tmpdir(), `package-guard-backup-${randomId}.json`);
+		// Create isolated temp directory and file for atomic cleanup
+		const tmpDir = mkdtempSync(join(tmpdir(), "pkg-guard-"));
+		const tempFile = join(tmpDir, "backup.json");
 		const content = `${JSON.stringify(data, null, 2)}\n`;
 		writeFileSync(tempFile, content);
 
@@ -429,11 +487,11 @@ export async function syncGistBackup(
 			},
 		);
 
-		// Clean up temp file
+		// Clean up temp directory and file
 		try {
-			unlinkSync(tempFile);
+			rmSync(tmpDir, { recursive: true, force: true });
 		} catch {
-			// Ignore cleanup errors
+			// Ignore cleanup errors - OS will clean /tmp eventually
 		}
 
 		return { success: true };
@@ -462,9 +520,9 @@ export async function createGist(): Promise<{
 	}
 
 	try {
-		// Create temp file for initial content
-		const randomId = randomBytes(8).toString("hex");
-		const tempFile = join(tmpdir(), `package-guard-create-${randomId}.json`);
+		// Create isolated temp directory and file for atomic cleanup
+		const tmpDir = mkdtempSync(join(tmpdir(), "pkg-guard-"));
+		const tempFile = join(tmpDir, "create.json");
 		writeFileSync(tempFile, '{"status": "initial backup"}\n');
 
 		// Create gist using temp file (async - non-blocking)
@@ -475,11 +533,11 @@ export async function createGist(): Promise<{
 			},
 		);
 
-		// Clean up temp file
+		// Clean up temp directory and file
 		try {
-			unlinkSync(tempFile);
+			rmSync(tmpDir, { recursive: true, force: true });
 		} catch {
-			// Ignore cleanup errors
+			// Ignore cleanup errors - OS will clean /tmp eventually
 		}
 
 		// Extract gist ID from output URL
@@ -607,37 +665,47 @@ async function handleBackup(ctx: ExtensionCommandContext): Promise<void> {
 
 	ctx.ui.setWorkingMessage(t("backup.saving"));
 
+	let localSuccess = false;
+	let localError: string | null = null;
+
 	try {
 		saveLocalBackup(backupPath);
-		ctx.ui.notify(t("backup.local_success", { path: backupPath }), "info");
+		localSuccess = true;
 	} catch (error) {
-		ctx.ui.setWorkingMessage();
-		ctx.ui.notify(
-			t("backup.local_error", {
-				error: error instanceof Error ? error.message : String(error),
-			}),
-			"error",
-		);
-		return;
+		localError = error instanceof Error ? error.message : String(error);
 	}
+
+	let gistSuccess = false;
+	let gistError: string | null = null;
 
 	if (config.gistId && config.gistEnabled !== false) {
 		ctx.ui.setWorkingMessage(t("backup.syncing_gist"));
 		const result = await syncGistBackup(config.gistId, data);
-		if (result.success) {
-			ctx.ui.notify(
-				t("backup.gist_success", { gistId: config.gistId }),
-				"info",
-			);
-		} else {
-			ctx.ui.notify(
-				t("backup.gist_warning", { error: result.error || "" }),
-				"warning",
-			);
-		}
+		gistSuccess = result.success;
+		gistError = result.error || null;
 	}
 
 	ctx.ui.setWorkingMessage();
+
+	// Combine all results into a single, clear notification
+	if (localSuccess && gistSuccess && config.gistId) {
+		ctx.ui.notify(
+			`${t("backup.local_success", { path: backupPath })}
+${t("backup.gist_success", { gistId: config.gistId })}`,
+			"info",
+		);
+	} else if (localSuccess && !config.gistId) {
+		ctx.ui.notify(t("backup.local_success", { path: backupPath }), "info");
+	} else if (localSuccess && config.gistId && config.gistEnabled === false) {
+		ctx.ui.notify(t("backup.local_success", { path: backupPath }), "info");
+	} else if (localSuccess && gistError) {
+		ctx.ui.notify(
+			t("backup.gist_warning", { error: gistError || "" }),
+			"warning",
+		);
+	} else if (localError) {
+		ctx.ui.notify(t("backup.local_error", { error: localError }), "error");
+	}
 }
 
 async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
@@ -660,8 +728,8 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 
 	try {
 		const content = readFileSync(backupPath, "utf-8");
-		const parsed = JSON.parse(content) as BackupData;
-		if (parsed && Array.isArray(parsed.registeredPackages)) {
+		const parsed = JSON.parse(content) as unknown;
+		if (isBackupData(parsed)) {
 			backupData = parsed;
 		}
 	} catch {
@@ -672,8 +740,8 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 		try {
 			const result = await getGistContent(config.gistId);
 			if (result.success && result.content) {
-				const parsed = JSON.parse(result.content) as BackupData;
-				if (parsed && Array.isArray(parsed.registeredPackages)) {
+				const parsed = JSON.parse(result.content) as unknown;
+				if (isBackupData(parsed)) {
 					backupData = parsed;
 					backupSource = "gist";
 				}
@@ -801,188 +869,30 @@ async function handleRestore(ctx: ExtensionCommandContext): Promise<void> {
 	}
 }
 
-async function handleConfig(ctx: ExtensionCommandContext): Promise<void> {
-	const config = readGuardConfig();
-
-	while (true) {
-		const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
-		const isDefaultPath = !config.backupPath;
-		const ghInstalled = isGhInstalled();
-
-		const options = [
-			t("config.path_label", { path: currentPath, isDefault: isDefaultPath }),
-			t("config.gist_label", {
-				gistId: config.gistId ?? "undefined",
-				ghInstalled,
-			}),
-			ghInstalled ? t("config.action_create_gist") : "",
-			config.gistId && ghInstalled ? t("config.action_delete_gist") : "",
-			config.gistId
-				? t("config.toggle_sync", {
-						status:
-							config.gistEnabled === false
-								? t("config.sync_status_disabled")
-								: t("config.sync_status_enabled"),
-					})
-				: t("config.toggle_sync_no_gist"),
-			t("config.back"),
-		].filter(Boolean);
-
-		const choice = await ctx.ui.select(t("config.title"), options);
-
-		if (choice === undefined || choice === t("config.back")) {
-			return;
-		}
-
-		switch (choice) {
-			case t("config.path_label", {
-				path: currentPath,
-				isDefault: isDefaultPath,
-			}): {
-				const newPath = await ctx.ui.input(
-					t("config.input_backup_path"),
-					config.backupPath || DEFAULT_BACKUP_PATH,
-				);
-				if (newPath !== undefined) {
-					const expandedPath = newPath.startsWith("~")
-						? `${homedir()}${newPath.slice(1)}`
-						: newPath;
-					config.backupPath = expandedPath;
-					writeGuardConfig(config);
-					ctx.ui.notify(t("config.path_set"), "info");
-				}
-				break;
-			}
-
-			case t("config.gist_label", {
-				gistId: config.gistId ?? "undefined",
-				ghInstalled,
-			}): {
-				if (!ghInstalled) {
-					ctx.ui.notify(t("config.gist_gh_missing"), "error");
-					break;
-				}
-				const gistInput = await ctx.ui.input(
-					t("config.input_gist_id"),
-					config.gistId ? `https://gist.github.com/${config.gistId}` : "",
-				);
-				if (gistInput !== undefined) {
-					const trimmed = gistInput.trim();
-					if (trimmed === "") {
-						config.gistId = undefined;
-					} else {
-						config.gistId = extractGistId(trimmed);
-					}
-					writeGuardConfig(config);
-					ctx.ui.notify(
-						config.gistId ? t("config.gist_set") : t("config.gist_cleared"),
-						"info",
-					);
-				}
-				break;
-			}
-
-			case t("config.action_create_gist"): {
-				if (!ghInstalled) {
-					ctx.ui.notify(t("config.gist_gh_missing"), "error");
-					break;
-				}
-				ctx.ui.setWorkingMessage(t("config.creating_gist"));
-				const result = await createGist();
-				ctx.ui.setWorkingMessage();
-				if (result.success && result.gistId) {
-					config.gistId = result.gistId;
-					config.gistEnabled = true;
-					writeGuardConfig(config);
-					ctx.ui.notify(
-						t("config.gist_created", { gistId: result.gistId }),
-						"info",
-					);
-				} else {
-					ctx.ui.notify(
-						t("config.gist_create_failed", { error: result.error || "" }),
-						"error",
-					);
-				}
-				break;
-			}
-
-			case t("config.action_delete_gist"): {
-				if (!config.gistId) {
-					ctx.ui.notify(t("config.no_gist_to_delete"), "warning");
-					break;
-				}
-				const confirmed = await ctx.ui.confirm(
-					t("config.delete_confirm_title"),
-					t("config.delete_confirm_message", { gistId: config.gistId }),
-				);
-				if (confirmed) {
-					ctx.ui.setWorkingMessage(t("config.deleting_gist"));
-					const result = await deleteGist(config.gistId);
-					ctx.ui.setWorkingMessage();
-					if (result.success) {
-						config.gistId = undefined;
-						config.gistEnabled = undefined;
-						writeGuardConfig(config);
-						ctx.ui.notify(t("config.gist_deleted"), "info");
-					} else {
-						ctx.ui.notify(
-							t("config.gist_delete_failed", { error: result.error || "" }),
-							"error",
-						);
-					}
-				}
-				break;
-			}
-
-			case t("config.toggle_sync", {
-				status:
-					config.gistEnabled === false
-						? t("config.sync_status_disabled")
-						: t("config.sync_status_enabled"),
-			}): {
-				if (!config.gistId) {
-					ctx.ui.notify(t("config.sync_need_gist"), "warning");
-					break;
-				}
-				config.gistEnabled = config.gistEnabled === false;
-				writeGuardConfig(config);
-				ctx.ui.notify(
-					config.gistEnabled
-						? t("config.sync_enabled")
-						: t("config.sync_disabled"),
-					"info",
-				);
-				break;
-			}
-
-			case t("config.toggle_sync_no_gist"): {
-				ctx.ui.notify(t("config.sync_need_gist"), "warning");
-				break;
-			}
-		}
-	}
-}
-
 async function showHelp(ctx: ExtensionCommandContext): Promise<void> {
-	const lines = [
-		`# ${t("help.title")}`,
+	// Use pi's UI notification for proper formatting and overflow handling
+	const helpLines = [
+		"═══ Available Actions ═══",
+		"Find orphaned packages - Scan and register packages not tracked by pi",
+		"Save backup to file + Gist - Backup registered packages locally and to Gist",
+		"Restore packages from backup - Register packages from backup file",
 		"",
-		t("help.description"),
+		"═══ Configuration ═══",
+		"Change where backups are saved - Set custom backup file path",
+		"Set up new GitHub Gist backup - Create a new Gist for cloud backup",
+		"Connect to existing Gist - Use an existing Gist ID",
+		"Switch to a different Gist - Change to another Gist",
+		"Remove Gist backup - Delete Gist and clear configuration",
+		"Enable/Disable automatic Gist sync - Toggle cloud backup sync",
 		"",
-		`## ${t("help.what_it_does")}`,
-		...(t("help.features") as string[]),
-		"",
-		`## ${t("help.usage")}`,
-		"",
-		t("help.avoid_orphans"),
-		"",
-		`  ${t("help.avoid_command")}`,
-		`  ${t("help.preferred_command")}`,
-		"",
-		t("help.explanation"),
+		"═══ Pro Tips ═══",
+		"• Use 'pi install npm:package' instead of 'npm install -g package'",
+		"• Orphaned packages are installed but not tracked by pi",
+		"• Gist backup keeps your packages synced across machines",
+		"• Run 'Find orphaned packages' after installing via npm directly",
 	];
-	ctx.ui.notify(lines.join("\n"), "info");
+
+	ctx.ui.notify(helpLines.join("\n"), "info");
 }
 
 // ===========================================================================
@@ -1011,30 +921,211 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 	pi.registerCommand("package-guard", {
 		description: t("command.description"),
 		handler: async (_args, ctx) => {
-			const choice = await ctx.ui.select(t("menu.title"), [
-				t("menu.scan"),
-				t("menu.backup"),
-				t("menu.restore"),
-				t("menu.settings"),
-				t("menu.help"),
-			]);
+			while (true) {
+				// Read fresh config each iteration
+				const config = readGuardConfig();
+				const ghInstalled = isGhInstalled();
+				const registeredPackages = getRegisteredPackages();
+				const diff = analyzePackages();
+				const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
 
-			switch (choice) {
-				case t("menu.scan"):
+				// Update STATUS ZONE (widget - non-selectable)
+				const gistDisplay = config.gistId
+					? `☁️ https://gist.github.com/${config.gistId}`
+					: "☁️ not configured";
+				const syncDisplay = config.gistEnabled === false ? "⏸️" : "⏳";
+				// Show full path with home directory shortened to ~ for readability
+				const displayPath = currentPath.startsWith(homedir())
+					? `~${currentPath.slice(homedir().length)}`
+					: currentPath;
+				ctx.ui.setWidget("pi-pkg-guard:status", [
+					`📦 ${registeredPackages.length} registered │ ${diff.orphaned.length} orphaned │ 💾 ${displayPath} │ ${gistDisplay} │ ${syncDisplay} auto-sync`,
+				]);
+
+				// Build MENU ZONE (selectable items only)
+				// No status items here - pure menu actions
+				const options = [
+					// Package Operations section
+					"═══ Package Operations ═══",
+					t("menu.scan"),
+					t("menu.backup"),
+					t("menu.restore"),
+					"",
+					// Configuration section
+					"═══ Configuration ═══",
+					t("menu.change_path"),
+					!config.gistId && ghInstalled ? t("menu.gist_create") : "",
+					!config.gistId && ghInstalled ? t("menu.gist_use") : "",
+					config.gistId && ghInstalled ? t("menu.gist_change") : "",
+					config.gistId && ghInstalled ? t("menu.gist_delete") : "",
+					config.gistId
+						? t("menu.toggle_sync", {
+								status:
+									config.gistEnabled === false
+										? t("menu.sync_disabled")
+										: t("menu.sync_enabled"),
+							})
+						: "",
+					"",
+					// System section
+					"═══ System ═══",
+					t("menu.help"),
+					t("menu.exit"),
+				].filter(Boolean);
+
+				const choice = await ctx.ui.select(t("menu.title"), options);
+
+				// Handle menu selection
+				// Section headers (═══) are selectable but act as visual anchors
+				// Empty strings filtered out, so no handling needed
+				if (choice === undefined || choice === t("menu.exit")) {
+					return;
+				}
+
+				// Core operations
+				if (choice === t("menu.scan")) {
 					await handleRun(ctx);
-					break;
-				case t("menu.backup"):
+				} else if (choice === t("menu.backup")) {
 					await handleBackup(ctx);
-					break;
-				case t("menu.restore"):
+				} else if (choice === t("menu.restore")) {
 					await handleRestore(ctx);
-					break;
-				case t("menu.settings"):
-					await handleConfig(ctx);
-					break;
-				case t("menu.help"):
+				}
+				// Configuration: Path
+				else if (choice === t("menu.change_path")) {
+					const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
+					const newPath = await ctx.ui.input(
+						t("config.input_backup_path"),
+						currentPath,
+					);
+					if (newPath !== undefined) {
+						const expandedPath = newPath.startsWith("~")
+							? `${homedir()}${newPath.slice(1)}`
+							: newPath;
+						config.backupPath = expandedPath;
+						writeGuardConfig(config);
+						ctx.ui.notify(t("config.path_set"), "info");
+					}
+				}
+				// Configuration: Gist - Create new
+				else if (choice === t("menu.gist_create")) {
+					if (!ghInstalled) {
+						ctx.ui.notify(t("config.gist_gh_missing"), "error");
+					} else {
+						ctx.ui.setWorkingMessage(t("config.creating_gist"));
+						const result = await createGist();
+						ctx.ui.setWorkingMessage();
+						if (result.success && result.gistId) {
+							config.gistId = result.gistId;
+							config.gistEnabled = true;
+							writeGuardConfig(config);
+							ctx.ui.notify(
+								t("config.gist_created", { gistId: result.gistId }),
+								"info",
+							);
+						} else {
+							ctx.ui.notify(
+								t("config.gist_create_failed", { error: result.error || "" }),
+								"error",
+							);
+						}
+					}
+				}
+				// Configuration: Gist - Use existing
+				else if (choice === t("menu.gist_use")) {
+					if (!ghInstalled) {
+						ctx.ui.notify(t("config.gist_gh_missing"), "error");
+					} else {
+						const gistInput = await ctx.ui.input(t("config.input_gist_id"), "");
+						if (gistInput !== undefined) {
+							const trimmed = gistInput.trim();
+							if (trimmed === "") {
+								config.gistId = undefined;
+							} else {
+								config.gistId = extractGistId(trimmed);
+							}
+							writeGuardConfig(config);
+							ctx.ui.notify(
+								config.gistId ? t("config.gist_set") : t("config.gist_cleared"),
+								"info",
+							);
+						}
+					}
+				}
+				// Configuration: Gist - Change
+				else if (choice === t("menu.gist_change")) {
+					if (!ghInstalled) {
+						ctx.ui.notify(t("config.gist_gh_missing"), "error");
+					} else {
+						const gistInput = await ctx.ui.input(
+							t("config.input_gist_id"),
+							config.gistId ? `https://gist.github.com/${config.gistId}` : "",
+						);
+						if (gistInput !== undefined) {
+							const trimmed = gistInput.trim();
+							if (trimmed === "") {
+								config.gistId = undefined;
+							} else {
+								config.gistId = extractGistId(trimmed);
+							}
+							writeGuardConfig(config);
+							ctx.ui.notify(
+								config.gistId ? t("config.gist_set") : t("config.gist_cleared"),
+								"info",
+							);
+						}
+					}
+				}
+				// Configuration: Gist - Delete
+				else if (choice === t("menu.gist_delete")) {
+					if (!config.gistId) {
+						ctx.ui.notify(t("config.no_gist_to_delete"), "warning");
+					} else {
+						const confirmed = await ctx.ui.confirm(
+							t("config.delete_confirm_title"),
+							t("config.delete_confirm_message", { gistId: config.gistId }),
+						);
+						if (confirmed) {
+							ctx.ui.setWorkingMessage(t("config.deleting_gist"));
+							const result = await deleteGist(config.gistId);
+							ctx.ui.setWorkingMessage();
+							if (result.success) {
+								config.gistId = undefined;
+								config.gistEnabled = undefined;
+								writeGuardConfig(config);
+								ctx.ui.notify(t("config.gist_deleted"), "info");
+							} else {
+								ctx.ui.notify(
+									t("config.gist_delete_failed", { error: result.error || "" }),
+									"error",
+								);
+							}
+						}
+					}
+				}
+				// Configuration: Toggle sync
+				else if (
+					choice ===
+					t("menu.toggle_sync", {
+						status:
+							config.gistEnabled === false
+								? t("menu.sync_disabled")
+								: t("menu.sync_enabled"),
+					})
+				) {
+					config.gistEnabled = config.gistEnabled === false;
+					writeGuardConfig(config);
+					ctx.ui.notify(
+						config.gistEnabled
+							? t("config.sync_enabled")
+							: t("config.sync_disabled"),
+						"info",
+					);
+				}
+				// Help
+				else if (choice === t("menu.help")) {
 					await showHelp(ctx);
-					break;
+				}
+				// Loop continues, menu reappears with fresh state
 			}
 		},
 	});

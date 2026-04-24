@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-04-23
+
+### Fixed
+
+- **i18n**: Handle empty string in select expressions correctly
+- **i18n**: Process nested interpolations in select expressions properly
+- **Security**: `isValidGistId()` now requires minimum 32-character hex strings to prevent empty string bypass
+- **Security**: `isValidBackupPath()` now uses `resolve()` instead of `join()` for proper path traversal prevention
+- **Validation**: Added `isBackupData()` type guard for comprehensive backup data validation
+- **Performance**: Added 5-second TTL cache to `getNpmGlobalPackages()` to prevent UI blocking during menu loops
+- **Code quality**: Improved `syncOrphanedPackages()` with Set-based normalization to prevent duplicate formats
+- **Cleanup**: Replaced single-file temp cleanup with isolated `mkdtempSync()` directories for atomic cleanup
+- **DX**: Added `process.env.DEBUG` conditional logging for npm operation failures
+
+### Added
+
+- **API**: Exported `isBackupData` type guard in public API (`extensions/api.ts`)
+
 ## [0.8.1] - 2026-04-22
 
 ### Fixed

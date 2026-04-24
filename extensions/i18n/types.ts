@@ -8,6 +8,7 @@
 export interface TranslationDict {
 	// Startup / Status messages
 	"status.orphaned_packages": string;
+	"status.all_registered": string;
 
 	// npm Guard
 	"npm_guard.warning": string;
@@ -17,14 +18,25 @@ export interface TranslationDict {
 	"menu.scan": string;
 	"menu.backup": string;
 	"menu.restore": string;
-	"menu.settings": string;
+	"menu.change_path": string;
+	"menu.gist_create": string;
+	"menu.gist_use": string;
+	"menu.gist_change": string;
+	"menu.gist_delete": string;
+	"menu.toggle_sync": string;
+	"menu.sync_enabled": string;
+	"menu.sync_disabled": string;
 	"menu.help": string;
+	"menu.exit": string;
 
 	// Scan / Run
 	"scan.no_orphans": string;
 	"scan.found_orphans": string;
 	"scan.success": string;
 	"scan.reload_hint": string;
+	"scan.analyzing": string;
+	"scan.reload_now": string;
+	"scan.reload_later": string;
 
 	// Backup
 	"backup.saving": string;
@@ -33,9 +45,12 @@ export interface TranslationDict {
 	"backup.syncing_gist": string;
 	"backup.gist_success": string;
 	"backup.gist_warning": string;
+	"backup.gist_skipped": string;
+	"backup.gist_url_missing": string;
 
 	// Restore
 	"restore.reading": string;
+	"restore.local_failed_trying_gist": string;
 	"restore.invalid_path": string;
 	"restore.no_backup": string;
 	"restore.loaded": string;
@@ -55,17 +70,8 @@ export interface TranslationDict {
 	"restore.already_registered": string;
 	"restore.install_hint": string;
 
-	// Settings / Config
-	"config.title": string;
-	"config.path_label": string;
-	"config.gist_label": string;
+	// Settings / Config (input prompts, notifications, and feedback messages)
 	"config.gist_gh_missing": string;
-	"config.action_create_gist": string;
-	"config.action_delete_gist": string;
-	"config.toggle_sync": string;
-	"config.sync_status_enabled": string;
-	"config.sync_status_disabled": string;
-	"config.toggle_sync_no_gist": string;
 	"config.sync_need_gist": string;
 	"config.input_backup_path": string;
 	"config.input_gist_id": string;
@@ -83,7 +89,6 @@ export interface TranslationDict {
 	"config.no_gist_to_delete": string;
 	"config.sync_enabled": string;
 	"config.sync_disabled": string;
-	"config.back": string;
 
 	// Help
 	"help.title": string;

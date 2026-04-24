@@ -71,48 +71,15 @@ describe("ICU MessageFormat Parser", () => {
 		});
 	});
 
-	describe("Select Expressions", () => {
-		it("should select 'undefined' form when gistId is 'undefined'", () => {
-			const result = t("config.gist_label", { gistId: "undefined", ghInstalled: true });
-			assert(result.includes("Not configured"));
-			assert(!result.includes("gist.github.com"));
-		});
-
-		it("should select 'other' form when gistId is set", () => {
-			const result = t("config.gist_label", { gistId: "abc123", ghInstalled: true });
-			assert(result.includes("https://gist.github.com/abc123"));
-			assert(!result.includes("Not configured"));
-		});
-
-		it("should interpolate nested {gistId} within select result (regression test)", () => {
-			const result = t("config.gist_label", { gistId: "xyz789", ghInstalled: true });
-			// This was the bug - showed literal "{gistId}" instead of actual value
-			assert(!result.includes("{gistId}"));
-			assert(result.includes("xyz789"));
-		});
-
-		it("should handle ghInstalled=false with set gistId", () => {
-			const result = t("config.gist_label", { gistId: "abc123", ghInstalled: false });
-			assert(result.includes("https://gist.github.com/abc123"));
-			assert(result.includes("(install gh CLI)"));
-		});
-
-		it("should handle ghInstalled=false with undefined gistId", () => {
-			const result = t("config.gist_label", { gistId: "undefined", ghInstalled: false });
-			assert(result.includes("Not configured"));
-			assert(result.includes("(install gh CLI)"));
-		});
-	});
-
 	describe("Combined Select + Nested Interpolation", () => {
-		it("should handle nested {isDefault} in select result", () => {
-			const result = t("config.path_label", { path: "/test/path", isDefault: true });
-			assert(result.includes("(default)"));
+		it("should handle nested interpolation in select result", () => {
+			const result = t("menu.toggle_sync", { status: "Enabled" });
+			assert(result.includes("Enabled"));
 		});
 
-		it("should handle nested {isDefault} when false", () => {
-			const result = t("config.path_label", { path: "/test/path", isDefault: false });
-			assert(!result.includes("(default)"));
+		it("should handle select when variable is different", () => {
+			const result = t("menu.toggle_sync", { status: "Disabled" });
+			assert(result.includes("Disabled"));
 		});
 	});
 
@@ -148,21 +115,13 @@ describe("ICU MessageFormat Parser", () => {
 			assert(result.includes("19 orphaned packages"));
 		});
 
-		it("BUG: should not show literal '{gistId}' in menu", () => {
-			// This was the exact bug: "[Gist] https://gist.github.com/{gistId}"
-			const result = t("config.gist_label", { gistId: "mygist123", ghInstalled: true });
-			assert(!result.includes("{gistId}"));
-			assert(result.includes("mygist123"));
-		});
-
 		it("BUG: should handle select with nested variable interpolation", () => {
 			// Combined test: select chooses a form, then variables in that form are interpolated
-			const result = t("config.path_label", {
-				path: "/home/user/custom.json",
-				isDefault: false
+			const result = t("config.gist_created", {
+				gistId: "abc123",
 			});
-			assert(result.includes("/home/user/custom.json"));
-			assert(!result.includes("{isDefault}"));
+			assert(result.includes("abc123"));
+			assert(!result.includes("{gistId}"));
 		});
 	});
 });

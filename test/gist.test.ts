@@ -6,25 +6,14 @@
 
 import assert from "node:assert";
 import { describe, it } from "node:test";
+import {
+	extractGistId,
+	isValidBackupPath,
+	isValidGistId,
+} from "../extensions/index.js";
 
-// Minimal implementation for testing
-function extractGistId(input: string): string {
-	const trimmed = input.trim();
-	const match = trimmed.match(/gist\.github\.com\/(?:.*\/)?([a-f0-9]+)/);
-	return match ? match[1] : trimmed;
-}
-
-function isValidGistId(gistId: string): boolean {
-	return /^[a-f0-9]+$/i.test(gistId);
-}
-
-function isValidBackupPath(backupPath: string): boolean {
-	const normalized = backupPath.replace(/^~/, "/home/user");
-	return (
-		normalized.startsWith("/home/user/.pi/agent/") ||
-		normalized.startsWith("/tmp/")
-	);
-}
+import { homedir, tmpdir } from "node:os";
+import { join } from "node:path";
 
 describe("extractGistId", () => {
 	it("extracts ID from full URL with username", () => {
@@ -54,9 +43,21 @@ describe("extractGistId", () => {
 });
 
 describe("isValidGistId", () => {
-	it("accepts valid hex IDs", () => {
-		assert.strictEqual(isValidGistId("abc123def456"), true);
-		assert.strictEqual(isValidGistId("ABC123DEF456"), true);
+	it("accepts valid hex IDs (32+ chars)", () => {
+		// Valid 32-character gist IDs
+		assert.strictEqual(isValidGistId("abc123def45678901234567890123456"), true);
+		assert.strictEqual(isValidGistId("ABC123DEF45678901234567890123456"), true);
+		// Longer IDs also valid
+		assert.strictEqual(
+			isValidGistId("abc123def456789012345678901234567890"),
+			true,
+		);
+	});
+
+	it("rejects short gist IDs (< 32 chars)", () => {
+		// Too short - common mistake
+		assert.strictEqual(isValidGistId("abc123def456"), false);
+		assert.strictEqual(isValidGistId("abc123"), false);
 	});
 
 	it("rejects command injection attempts", () => {
@@ -70,18 +71,30 @@ describe("isValidGistId", () => {
 });
 
 describe("isValidBackupPath", () => {
+	const homeDir = homedir();
+	const tmpDir = tmpdir();
+
 	it("accepts paths within .pi/agent", () => {
-		assert.strictEqual(
-			isValidBackupPath("/home/user/.pi/agent/backup.json"),
-			true,
-		);
+		const validPath = join(homeDir, ".pi", "agent", "backup.json");
+		assert.strictEqual(isValidBackupPath(validPath), true);
 	});
 
 	it("accepts paths in tmpdir", () => {
-		assert.strictEqual(isValidBackupPath("/tmp/backup.json"), true);
+		const validPath = join(tmpDir, "backup.json");
+		assert.strictEqual(isValidBackupPath(validPath), true);
 	});
 
 	it("rejects paths outside allowed directories", () => {
 		assert.strictEqual(isValidBackupPath("/etc/passwd"), false);
+		assert.strictEqual(isValidBackupPath("/home/other/user/file.json"), false);
+	});
+
+	it("rejects path traversal attempts", () => {
+		const agentDir = join(homeDir, ".pi", "agent");
+		// Path traversal trying to escape allowed directory
+		assert.strictEqual(
+			isValidBackupPath(join(agentDir, "..", "..", "etc", "passwd")),
+			false,
+		);
 	});
 });

@@ -17,12 +17,20 @@ export const en_US: TranslationDict = {
 		"Use 'pi install npm:{packageName}' instead of 'npm install -g'",
 
 	// Command menu
-	"menu.title": "Package Guard - Main Menu",
-	"menu.scan": "Scan: Find and register orphaned packages",
-	"menu.backup": "Backup: Save packages to local file + Gist",
-	"menu.restore": "Restore: Register packages from backup",
-	"menu.settings": "Settings: Configure backup path and Gist",
-	"menu.help": "Help: How to use Package Guard",
+	"menu.title": "Package Guard",
+	"menu.scan": "Find orphaned packages",
+	"menu.backup": "Save backup to file + Gist",
+	"menu.restore": "Restore packages from backup",
+	"menu.change_path": "Change where backups are saved",
+	"menu.gist_create": "Set up new GitHub Gist backup",
+	"menu.gist_use": "Connect to existing Gist",
+	"menu.gist_change": "Switch to a different Gist",
+	"menu.gist_delete": "Remove Gist backup",
+	"menu.toggle_sync": "{status} automatic Gist sync",
+	"menu.sync_enabled": "Disable",
+	"menu.sync_disabled": "Enable",
+	"menu.help": "Show help and usage info",
+	"menu.exit": "Exit",
 
 	// Scan / Run
 	"scan.no_orphans":
@@ -40,7 +48,7 @@ export const en_US: TranslationDict = {
 	"backup.syncing_gist": "Syncing to GitHub Gist...",
 	"backup.gist_success":
 		"✓ Synced to GitHub Gist:\n  https://gist.github.com/{gistId}",
-	"backup.gist_warning": "✓ Local backup saved\n⚠ Gist sync failed:\n{error}",
+	"backup.gist_warning": "✓ Local backup saved\n✗ Gist sync failed:\n{error}",
 
 	// Restore
 	"restore.reading": "Reading backup...",
@@ -70,19 +78,8 @@ export const en_US: TranslationDict = {
 		"✓ All selected packages were already registered.",
 	"restore.install_hint": "\n\nRun this command to install:\n  {command}",
 
-	// Settings / Config
-	"config.title": "Package Guard Configuration",
-	"config.path_label":
-		"[Path] Local backup: {path}{isDefault, select, true { (default)} other {}}",
-	"config.gist_label":
-		"[Gist] {gistId, select, undefined {Not configured} other {https://gist.github.com/{gistId}}}{ghInstalled, select, false { (install gh CLI)} other {}}",
+	// Settings / Config (input prompts, notifications, and feedback messages)
 	"config.gist_gh_missing": " (install gh CLI)",
-	"config.action_create_gist": "[Action] Create new GitHub Gist",
-	"config.action_delete_gist": "[Action] Delete GitHub Gist",
-	"config.toggle_sync": "[Toggle] Auto-sync to Gist: {status}",
-	"config.sync_status_enabled": "Enabled",
-	"config.sync_status_disabled": "Disabled",
-	"config.toggle_sync_no_gist": "[Toggle] Auto-sync: (set Gist ID first)",
 	"config.sync_need_gist":
 		"Please configure a Gist ID first using the 'GitHub Gist' option",
 	"config.input_backup_path": "Backup file path:",
@@ -102,7 +99,6 @@ export const en_US: TranslationDict = {
 	"config.no_gist_to_delete": "No gist configured to delete",
 	"config.sync_enabled": "Gist sync enabled",
 	"config.sync_disabled": "Gist sync disabled",
-	"config.back": "[Back] Return to main menu",
 
 	// Help
 	"help.title": "# Package Guard",

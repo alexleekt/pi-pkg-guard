@@ -1,6 +1,6 @@
 {
 	"name": "pi-pkg-guard",
-	"version": "0.8.1",
+	"version": "0.8.2",
 	"description": "A lightweight pi extension that guards against the 'orphaned package' trap where packages are installed via npm but not registered in pi's settings.json",
 	"type": "module",
 	"license": "MIT",
@@ -44,9 +44,7 @@
 		"access": "public"
 	},
 	"pi": {
-		"extensions": [
-			"./extensions/index.ts"
-		]
+		"extensions": ["./extensions/index.ts"]
 	},
 	"peerDependencies": {
 		"@mariozechner/pi-coding-agent": "*",
