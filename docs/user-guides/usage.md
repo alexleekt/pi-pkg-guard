@@ -114,31 +114,15 @@ These are **not** considered Unregistered:
 
 ---
 
-## Security Features
+## Security
 
-pi-pkg-guard includes security validations to prevent command injection and path traversal attacks:
+pi-pkg-guard includes security validations:
 
-### Gist ID Validation
+- **Gist ID Validation** — Prevents command injection via hex-only validation
+- **Backup Path Validation** — Restricts paths to safe directories
+- **npm Command Detection** — Warns against creating unregistered packages
 
-When working with GitHub Gists, all gist IDs are validated to ensure they contain only hexadecimal characters (a-f, 0-9). This prevents command injection through malicious gist IDs.
-
-```typescript
-// Internal validation - prevents attacks like:
-// abc123; rm -rf /
-// ../../../etc/passwd
-```
-
-### Backup Path Validation
-
-Backup file paths are restricted to safe directories:
-- `~/.pi/agent/` (pi configuration directory)
-- System temporary directories (`/tmp/`, etc.)
-
-This prevents path traversal attacks that could overwrite system files.
-
-### npm Command Detection
-
-The extension detects `npm install -g pi-*` commands and warns users to use `pi install npm:*` instead, preventing unregistered packages that could be exploited.
+See the [Security Model](../reference/security.md) for detailed technical documentation.
 
 ---
 

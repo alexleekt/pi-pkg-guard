@@ -1,6 +1,6 @@
 # pi-pkg-guard
 
-> Guards against orphaned pi packages — installed via npm but not registered in pi's settings.
+> Guards against unregistered pi packages — installed via npm but not registered in pi's settings.
 
 [![npm version](https://badge.fury.io/js/pi-pkg-guard.svg)](https://www.npmjs.com/package/pi-pkg-guard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -26,15 +26,18 @@ npm install -g pi-token-burden  # Installs to npm global
 
 **pi-pkg-guard** detects, warns, and fixes this automatically.
 
+An **unregistered package** is a pi extension installed via npm but not registered in pi's settings. This creates a mismatch where the package exists on your system, but pi can't use it.
+
 ---
 
 ## Features
 
-- **Startup check** — Warns if orphaned packages found
+- **Startup check** — Warns if unregistered packages found (debounced to once/hour)
 - **npm guard** — Warns when you run `npm install -g pi-*`
-- **Scan** — Find and register orphaned packages
+- **Scan & Sync** — Find and register unregistered packages automatically
 - **Backup** — Save to local file + optional GitHub Gist
-- **Restore** — Recover packages from backup
+- **Restore** — Selectively restore packages from backup
+- **Multi-language** — English, Spanish, and more (ICU MessageFormat)
 
 ---
 
@@ -43,21 +46,29 @@ npm install -g pi-token-burden  # Installs to npm global
 📚 **[View Documentation](docs/README.md)** — Complete documentation index
 
 **Quick Links:**
-- [Getting Started](docs/user-guides/getting-started.md) — First time users
+- [Getting Started](docs/user-guides/getting-started.md) — First time tutorial
 - [Installation](docs/user-guides/installation.md) — Install options
-- [Usage Guide](docs/user-guides/usage.md) — Feature guide
-- [Contributing](docs/development/contributing.md) — Developer guide
+- [Usage Guide](docs/user-guides/usage.md) — Complete feature guide
+- [Backup Strategies](docs/user-guides/backup-strategies.md) — Best practices for backups
+- [Multi-Machine Setup](docs/user-guides/multi-machine-setup.md) — Sync across devices
+- [Troubleshooting](docs/user-guides/troubleshooting.md) — Common issues & solutions
 
 **Reference:**
-- [Architecture](docs/reference/architecture.md)
-- [API](docs/reference/api.md)
-- [Security Model](docs/reference/security.md)
+- [Architecture](docs/reference/architecture.md) — Technical design
+- [API](docs/reference/api.md) — Extension API
+- [Security Model](docs/reference/security.md) — Security validations
+- [i18n Guide](docs/reference/i18n-guide.md) — Translation contributor guide
+
+**Development:**
+- [Contributing](docs/development/contributing.md) — Contributor guidelines
+- [Testing](docs/development/testing.md) — Test writing guide
+- [Release Process](docs/development/release-process.md) — Release workflow
 
 ---
 
 ## Passive Warnings
 
-**Startup:** `3 orphaned pi package(s). Run /package-guard`
+**Startup:** `3 unregistered pi package(s). Run /package-guard`
 
 **npm install:** `Use 'pi install npm:pi-foo' instead of 'npm install -g'`
 

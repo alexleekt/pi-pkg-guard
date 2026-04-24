@@ -62,35 +62,9 @@ Run /reload to activate packages
 
 ## What Are Unregistered Packages?
 
-An **unregistered package** is a pi extension installed via npm but not registered in pi's settings.
+An **unregistered package** is a pi extension installed via npm but not registered in pi's settings. This means the package exists on your system, but pi can't use it.
 
-### The Problem
-
-```bash
-# You run this in your terminal:
-npm install -g pi-token-burden
-
-# It installs successfully, but...
-# pi doesn't know about it!
-```
-
-Result: The package exists on your system, but pi can't use it.
-
-### The Solution
-
-pi-pkg-guard detects these unregistered packages and helps you register them:
-
-1. **Automatic detection** on pi startup
-2. **Manual scan** via `/package-guard`
-3. **Prevention** by warning when you use `npm install -g pi-*`
-
-### ✅ Scan After Manual npm Installs
-
-If you must use npm directly:
-
-```
-/package-guard → Scan
-```
+See the [Usage Guide](./usage.md#understanding-unregistered-packages) for complete details on detection patterns and how it works.
 
 ---
 
