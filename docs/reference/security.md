@@ -116,8 +116,25 @@ function isValidBackupPath(path: string): boolean {
 
 All external data validated before use:
 - `isPiSettings()` - Settings file validation
-- `isGuardConfig()` - Configuration validation
-- `isBackupData()` - Backup file validation
+- `isExtensionSettings()` - Configuration validation (formerly `isGuardConfig`)
+- `isPackageSnapshot()` - Backup file validation (formerly `isBackupData`)
+
+### Schema Validation
+
+Backup data undergoes strict validation:
+- `validatePackageSnapshot()` - Comprehensive validation with detailed errors
+- Schema URL validation against allowed patterns (prevents malicious schema URLs)
+- ISO 8601 timestamp format validation
+- Type checking for all array elements
+- Rejection of unknown/additional properties
+
+### Legacy Migration
+
+Legacy backups are safely migrated:
+- `isLegacyBackup()` - Detects pre-schema backups
+- `migrateLegacyBackup()` - Upgrades to current schema
+- User confirmation required before migration
+- Optional in-place upgrade of saved backup files
 
 ---
 

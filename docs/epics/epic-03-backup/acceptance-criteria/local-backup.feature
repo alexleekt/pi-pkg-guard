@@ -17,10 +17,9 @@ Feature: Local Package Backup
     Then a JSON file should be created at "~/.pi/agent/package-guard-backup.json"
     And the file should contain:
       | field                |
+      | $schema              |
       | timestamp            |
-      | npmGlobalPackages    |
-      | registeredPackages   |
-      | orphanedPackages     |
+      | npmPackages          |
 
   Scenario: Backup success message
     Given I select "Save backup to file + Gist"

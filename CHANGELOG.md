@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Schema Validation**: Strict validation with migration path for legacy backups:
+  - New backups include `$schema` field with versioned URL
+  - `validatePackageSnapshot()` for comprehensive backup validation
+  - `isLegacyBackup()` to detect pre-schema backups
+  - `migrateLegacyBackup()` to upgrade legacy backups with user consent
+  - Migration UI prompts during restore workflow
+  - 52 new tests covering validation and migration scenarios
+- **JSON Schema**: `schema/package-snapshot.json` for external validation
+
+### Changed
+
+- **Backup Format**: Simplified schema with `$schema` field for future-proofing:
+  - Removed `registeredPackages` and `unregisteredPackages` (derived fields)
+  - Only `npmPackages` array is stored (canonical source of truth)
+  - Registration state computed at restore time from current pi settings
+- **Restore Workflow**: Enhanced to detect and migrate legacy backups
+- **i18n**: Added `restore.all_installed` key for simplified schema restore flow
+
 ## [0.9.0] - 2026-04-23
 
 ### Changed

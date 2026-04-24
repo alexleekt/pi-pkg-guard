@@ -55,6 +55,7 @@ export interface TranslationDict {
 	"restore.no_backup": string;
 	"restore.loaded": string;
 	"restore.all_registered": string;
+	"restore.all_installed": string;
 	"restore.packages_available": string;
 	"restore.select_prompt": string;
 	"restore.option_include": string;
@@ -69,6 +70,16 @@ export interface TranslationDict {
 	"restore.success": string;
 	"restore.already_registered": string;
 	"restore.install_hint": string;
+
+	// Legacy backup migration
+	"restore.legacy_detected_title": string;
+	"restore.legacy_detected_message": string;
+	"restore.legacy_gist_message": string;
+	"restore.legacy_declined": string;
+	"restore.upgrade_backup_title": string;
+	"restore.upgrade_backup_message": string;
+	"restore.upgrade_success": string;
+	"restore.upgrade_failed": string;
 
 	// Settings / Config (input prompts, notifications, and feedback messages)
 	"config.gist_gh_missing": string;

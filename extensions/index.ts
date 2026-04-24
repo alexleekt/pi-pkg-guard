@@ -1,11 +1,16 @@
 import { exec, execSync } from "node:child_process";
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
+
+// Load version from package.json for schema URL
+const require = createRequire(import.meta.url);
+const { version: EXTENSION_VERSION } = require("../package.json");
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
@@ -40,6 +45,18 @@ const NPM_CACHE_TTL_MS = 5000; // 5 second cache
 let npmGlobalCache: string[] | null = null;
 let npmGlobalCacheTime = 0;
 
+// Package Snapshot Schema URL (for backup validation)
+const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v${EXTENSION_VERSION}/schema/package-snapshot.json`;
+
+// Accept schema URLs from any version tag, main branch, or refs/tags pattern
+const ALLOWED_SNAPSHOT_SCHEMA_PATTERNS = [
+	PACKAGE_SNAPSHOT_SCHEMA_URL,
+	/^https:\/\/raw\.githubusercontent\.com\/alexleekt\/pi-pkg-guard\/v\d+\.\d+\.\d+\/schema\/package-snapshot\.json$/,
+	/^https:\/\/raw\.githubusercontent\.com\/alexleekt\/pi-pkg-guard\/refs\/tags\/v\d+\.\d+\.\d+\/schema\/package-snapshot\.json$/,
+	"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/refs/heads/main/schema/package-snapshot.json",
+	"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/main/schema/package-snapshot.json",
+];
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -61,10 +78,21 @@ export interface ExtensionSettings {
 }
 
 export interface PackageSnapshot {
+	$schema: string;
 	timestamp: string;
 	npmPackages: string[];
-	registeredPackages: string[];
-	unregisteredPackages: string[];
+	excludedPackages?: string[];
+}
+
+export interface ValidationResult {
+	valid: boolean;
+	errors: string[];
+}
+
+export interface MigrationResult {
+	migrated: boolean;
+	data?: PackageSnapshot;
+	errors?: string[];
 }
 
 // Legacy type aliases for backward compatibility
@@ -137,6 +165,9 @@ export function isPackageSnapshot(value: unknown): value is PackageSnapshot {
 	if (typeof value !== "object" || value === null) return false;
 	const v = value as Record<string, unknown>;
 
+	// Check $schema field
+	if (typeof v.$schema !== "string") return false;
+
 	// Check timestamp
 	if (typeof v.timestamp !== "string") return false;
 
@@ -144,15 +175,155 @@ export function isPackageSnapshot(value: unknown): value is PackageSnapshot {
 	if (!Array.isArray(v.npmPackages)) return false;
 	if (!v.npmPackages.every((p) => typeof p === "string")) return false;
 
-	// Check registeredPackages array
-	if (!Array.isArray(v.registeredPackages)) return false;
-	if (!v.registeredPackages.every((p) => typeof p === "string")) return false;
-
-	// Check unregisteredPackages array
-	if (!Array.isArray(v.unregisteredPackages)) return false;
-	if (!v.unregisteredPackages.every((p) => typeof p === "string")) return false;
+	// excludedPackages is optional
+	if (v.excludedPackages !== undefined) {
+		if (!Array.isArray(v.excludedPackages)) return false;
+		if (!v.excludedPackages.every((p) => typeof p === "string")) return false;
+	}
 
 	return true;
+}
+
+/**
+ * Detect if data is a legacy backup (lacks $schema but has other required fields).
+ */
+export function isLegacyBackup(data: unknown): boolean {
+	if (typeof data !== "object" || data === null) return false;
+	if (Array.isArray(data)) return false;
+
+	const candidate = data as Record<string, unknown>;
+
+	// Legacy backup indicators:
+	// 1. No $schema field
+	// 2. Has timestamp (string)
+	// 3. Has npmPackages (array)
+	// 4. Has registeredPackages OR unregisteredPackages OR orphanedPackages
+
+	if (candidate.$schema !== undefined) return false;
+	if (typeof candidate.timestamp !== "string") return false;
+	if (!Array.isArray(candidate.npmPackages)) return false;
+
+	const hasLegacyFields =
+		Array.isArray(candidate.registeredPackages) ||
+		Array.isArray(candidate.unregisteredPackages) ||
+		Array.isArray(candidate.orphanedPackages);
+
+	return hasLegacyFields;
+}
+
+/**
+ * Migrate a legacy backup to the current schema format.
+ */
+export function migrateLegacyBackup(data: unknown): MigrationResult {
+	if (!isLegacyBackup(data)) {
+		return {
+			migrated: false,
+			errors: [
+				"Not a legacy backup - already has $schema or missing required fields",
+			],
+		};
+	}
+
+	const legacy = data as Record<string, unknown>;
+
+	const migrated: PackageSnapshot = {
+		$schema: PACKAGE_SNAPSHOT_SCHEMA_URL,
+		timestamp: legacy.timestamp as string,
+		npmPackages: (legacy.npmPackages as string[]) || [],
+	};
+
+	// Preserve excludedPackages if present
+	if (Array.isArray(legacy.excludedPackages)) {
+		migrated.excludedPackages = legacy.excludedPackages as string[];
+	}
+
+	return { migrated: true, data: migrated };
+}
+
+/**
+ * Strictly validate a PackageSnapshot against the schema.
+ * Returns detailed error messages if validation fails.
+ */
+export function validatePackageSnapshot(data: unknown): ValidationResult {
+	const errors: string[] = [];
+
+	if (typeof data !== "object" || data === null) {
+		return { valid: false, errors: ["Data must be an object"] };
+	}
+
+	if (Array.isArray(data)) {
+		return { valid: false, errors: ["Data must be an object, not an array"] };
+	}
+
+	const candidate = data as Record<string, unknown>;
+
+	// Check $schema field
+	if (candidate.$schema === undefined) {
+		errors.push("Missing required field: $schema");
+	} else if (typeof candidate.$schema !== "string") {
+		errors.push("Field '$schema' must be a string");
+	} else {
+		const isValidSchemaUrl = ALLOWED_SNAPSHOT_SCHEMA_PATTERNS.some((pattern) =>
+			typeof pattern === "string"
+				? candidate.$schema === pattern
+				: pattern.test(candidate.$schema as string),
+		);
+		if (!isValidSchemaUrl) {
+			errors.push(
+				`Unrecognized schema URL: '${candidate.$schema}'. Expected a pi-pkg-guard package snapshot schema URL.`,
+			);
+		}
+	}
+
+	// Check timestamp
+	if (candidate.timestamp === undefined) {
+		errors.push("Missing required field: timestamp");
+	} else if (typeof candidate.timestamp !== "string") {
+		errors.push("Field 'timestamp' must be a string");
+	} else if (Number.isNaN(Date.parse(candidate.timestamp))) {
+		errors.push("Field 'timestamp' must be a valid ISO 8601 date-time string");
+	}
+
+	// Check npmPackages
+	if (candidate.npmPackages === undefined) {
+		errors.push("Missing required field: npmPackages");
+	} else if (!Array.isArray(candidate.npmPackages)) {
+		errors.push("Field 'npmPackages' must be an array");
+	} else {
+		for (let i = 0; i < candidate.npmPackages.length; i++) {
+			if (typeof candidate.npmPackages[i] !== "string") {
+				errors.push(`Field 'npmPackages[${i}]' must be a string`);
+			}
+		}
+	}
+
+	// Check excludedPackages (optional)
+	if (candidate.excludedPackages !== undefined) {
+		if (!Array.isArray(candidate.excludedPackages)) {
+			errors.push("Field 'excludedPackages' must be an array");
+		} else {
+			for (let i = 0; i < candidate.excludedPackages.length; i++) {
+				if (typeof candidate.excludedPackages[i] !== "string") {
+					errors.push(`Field 'excludedPackages[${i}]' must be a string`);
+				}
+			}
+		}
+	}
+
+	// Check for additional properties
+	const allowedKeys = [
+		"$schema",
+		"timestamp",
+		"npmPackages",
+		"excludedPackages",
+	];
+	for (const key of Object.keys(candidate)) {
+		if (!allowedKeys.includes(key)) {
+			errors.push(`Unexpected property: '${key}'`);
+		}
+	}
+
+	return { valid: errors.length === 0, errors };
 }
 
 // =============================================================================
@@ -423,14 +594,11 @@ export function registerPackages(status: PackageStatus): void {
  */
 function createPackageSnapshot(): PackageSnapshot {
 	const npmPackages = getNpmGlobalPackages();
-	const registeredPackages = getRegisteredPackages();
-	const status = checkRegistrationStatus();
 
 	return {
+		$schema: PACKAGE_SNAPSHOT_SCHEMA_URL,
 		timestamp: new Date().toISOString(),
 		npmPackages,
-		registeredPackages,
-		unregisteredPackages: status.unregistered,
 	};
 }
 
@@ -736,24 +904,89 @@ async function executeRestore(ctx: ExtensionCommandContext): Promise<void> {
 
 	ctx.ui.setWorkingMessage(t("restore.reading"));
 
+	// Try local backup first
 	try {
 		const content = readFileSync(backupPath, "utf-8");
 		const parsed = JSON.parse(content) as unknown;
-		if (isPackageSnapshot(parsed)) {
+
+		// Check if it's a current schema backup
+		if (isPackageSnapshot(parsed) && validatePackageSnapshot(parsed).valid) {
 			backupData = parsed;
+		}
+		// Check if it's a legacy backup
+		else if (isLegacyBackup(parsed)) {
+			const migration = migrateLegacyBackup(parsed);
+			if (migration.migrated && migration.data) {
+				// Prompt user to migrate
+				const shouldMigrate = await ctx.ui.confirm(
+					t("restore.legacy_detected_title"),
+					t("restore.legacy_detected_message", {
+						timestamp: migration.data.timestamp,
+					}),
+				);
+
+				if (shouldMigrate) {
+					backupData = migration.data;
+
+					// Optionally: upgrade the saved backup file
+					const shouldUpgrade = await ctx.ui.confirm(
+						t("restore.upgrade_backup_title"),
+						t("restore.upgrade_backup_message"),
+					);
+
+					if (shouldUpgrade) {
+						try {
+							writeFileSync(
+								backupPath,
+								`${JSON.stringify(backupData, null, 2)}\n`,
+							);
+							ctx.ui.notify(t("restore.upgrade_success"), "info");
+						} catch {
+							ctx.ui.notify(t("restore.upgrade_failed"), "warning");
+						}
+					}
+				} else {
+					// User declined migration
+					ctx.ui.notify(t("restore.legacy_declined"), "error");
+					return;
+				}
+			}
 		}
 	} catch {
 		// Local backup failed, will try gist
 	}
 
+	// Try Gist backup if local failed
 	if (!backupData && config.gistId && isGhInstalled()) {
 		try {
 			const result = await getGistContent(config.gistId);
 			if (result.success && result.content) {
 				const parsed = JSON.parse(result.content) as unknown;
-				if (isPackageSnapshot(parsed)) {
+
+				if (
+					isPackageSnapshot(parsed) &&
+					validatePackageSnapshot(parsed).valid
+				) {
 					backupData = parsed;
 					backupSource = "gist";
+				} else if (isLegacyBackup(parsed)) {
+					const migration = migrateLegacyBackup(parsed);
+					if (migration.migrated && migration.data) {
+						const shouldMigrate = await ctx.ui.confirm(
+							t("restore.legacy_detected_title"),
+							t("restore.legacy_gist_message", {
+								timestamp: migration.data.timestamp,
+							}),
+						);
+
+						if (shouldMigrate) {
+							backupData = migration.data;
+							backupSource = "gist";
+						} else {
+							ctx.ui.notify(t("restore.legacy_declined"), "error");
+							return;
+						}
+					}
 				}
 			}
 		} catch {
@@ -777,14 +1010,14 @@ async function executeRestore(ctx: ExtensionCommandContext): Promise<void> {
 	);
 
 	const currentRegistered = new Set(getRegisteredPackages());
-	const packagesToRestore = backupData.registeredPackages.filter(
+	const packagesToRestore = backupData.npmPackages.filter(
 		(pkg) => !currentRegistered.has(pkg),
 	);
 
 	if (packagesToRestore.length === 0) {
 		ctx.ui.notify(
-			t("restore.all_registered", {
-				count: backupData.registeredPackages.length,
+			t("restore.all_installed", {
+				count: backupData.npmPackages.length,
 			}),
 			"info",
 		);

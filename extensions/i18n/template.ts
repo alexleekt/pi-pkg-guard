@@ -71,6 +71,8 @@ export const LOCALE_TEMPLATE: TranslationDict = {
 	"restore.loaded": "✓ Loaded backup from {source}:\n  {timestamp}",
 	"restore.all_registered":
 		"✓ All {count} {count, plural, one {package} other {packages}} from backup are already registered.\n\nNo restore needed.",
+	"restore.all_installed":
+		"✓ All {count} {count, plural, one {package} other {packages}} from backup are already installed.\n\nNo restore needed.",
 	"restore.packages_available":
 		"{count} {count, plural, one {package} other {packages}} from backup not currently registered:",
 	"restore.select_prompt": "Package {current} of {total}: {packageName}",
@@ -89,6 +91,23 @@ export const LOCALE_TEMPLATE: TranslationDict = {
 	"restore.already_registered":
 		"✓ All selected packages were already registered.",
 	"restore.install_hint": "\n\nRun this command to install:\n  {command}",
+
+	// Legacy backup migration
+	"restore.legacy_detected_title": "Legacy Backup Detected",
+	"restore.legacy_detected_message":
+		"This backup was created with an older version of Package Guard ({timestamp}).\n\n" +
+		"Migrate to current schema format?",
+	"restore.legacy_gist_message":
+		"This Gist backup uses the old format ({timestamp}).\n\n" +
+		"Migrate to current schema?",
+	"restore.legacy_declined":
+		"Cannot restore legacy backup without migration. Please upgrade the backup first.",
+	"restore.upgrade_backup_title": "Upgrade Backup File?",
+	"restore.upgrade_backup_message":
+		"Save the migrated backup to replace the legacy version?",
+	"restore.upgrade_success": "✓ Backup upgraded to current schema format",
+	"restore.upgrade_failed":
+		"⚠ Restore completed but failed to upgrade backup file (read-only?)",
 
 	// Settings / Config (input prompts, notifications, and feedback messages)
 	"config.gist_gh_missing": " (install gh CLI)",

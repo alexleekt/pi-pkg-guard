@@ -108,10 +108,10 @@ function isBashToolInput(input: unknown): input is { command?: string } {
 
 Validates bash tool input for npm command detection.
 
-### isGuardConfig
+### isExtensionSettings
 
 ```typescript
-function isGuardConfig(value: unknown): value is GuardConfig {
+function isExtensionSettings(value: unknown): value is ExtensionSettings {
   return typeof value === "object" &&
          value !== null &&
          // ... additional checks
@@ -119,6 +119,62 @@ function isGuardConfig(value: unknown): value is GuardConfig {
 ```
 
 Validates pi-pkg-guard configuration object.
+
+**Note:** Formerly `isGuardConfig()` (deprecated alias available).
+
+---
+
+## Backup Validation
+
+### isPackageSnapshot
+
+```typescript
+function isPackageSnapshot(value: unknown): value is PackageSnapshot {
+  // Validates all required fields and types
+}
+```
+
+Type guard for backup data. Checks for required fields:
+- `$schema` (string) - Schema URL
+- `timestamp` (string) - ISO 8601 date
+- `npmPackages` (string[]) - Global npm packages (canonical source)
+- `excludedPackages` (string[], optional) - Packages excluded from registration prompts
+
+**Note:** Formerly `isBackupData()` (deprecated alias available). The simplified schema stores only `npmPackages` - registration state is computed at restore time.
+
+### validatePackageSnapshot
+
+```typescript
+function validatePackageSnapshot(data: unknown): ValidationResult {
+  // Returns { valid: boolean, errors: string[] }
+}
+```
+
+Strict validation with detailed error messages:
+- Validates `$schema` URL against allowed patterns
+- Checks ISO 8601 timestamp format
+- Validates array element types
+- Rejects unknown/additional properties
+
+### isLegacyBackup
+
+```typescript
+function isLegacyBackup(data: unknown): boolean {
+  // Detects backups without $schema field
+}
+```
+
+Detects pre-schema backups (v0.8.2 and earlier) that need migration.
+
+### migrateLegacyBackup
+
+```typescript
+function migrateLegacyBackup(data: unknown): MigrationResult {
+  // Returns { migrated: boolean, data?: PackageSnapshot, errors?: string[] }
+}
+```
+
+Migrates legacy backup format to current schema with `$schema` field.
 
 ---
 

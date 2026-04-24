@@ -230,6 +230,16 @@ describe("isExtensionSettings", () => {
 				true,
 			);
 		});
+
+		it("accepts object with excludedPackages array", () => {
+			assert.strictEqual(
+				isExtensionSettings({
+					backupPath: "/home/user/.pi/agent/backup.json",
+					excludedPackages: ["pi-foo", "pi-bar"],
+				}),
+				true,
+			);
+		});
 	});
 
 	describe("invalid types (should return false)", () => {

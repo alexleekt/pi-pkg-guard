@@ -139,6 +139,7 @@ gh auth login
 - Package names (e.g., `npm:pi-token-burden`)
 - Timestamp
 - Registration status
+- Schema version identifier (`$schema` field)
 
 ❌ **Not Included:**
 - API keys
@@ -154,6 +155,36 @@ gh auth login
 - If concerned, use local backup only
 
 ---
+
+## Backup Format Versions
+
+### Current Format (v0.9.0+)
+
+All new backups include a `$schema` field for version tracking:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+  "timestamp": "2026-04-23T10:30:00.000Z",
+  "npmPackages": ["pi-foo", "pi-bar"]
+}
+```
+
+**Note:** The simplified schema stores only `npmPackages` (the canonical list). Registration state is computed at restore time by comparing against current pi settings.
+
+### Legacy Format (v0.8.2 and earlier)
+
+Older backups lack the `$schema` field but can be automatically migrated during restore.
+
+### Migration
+
+When restoring from a legacy backup:
+1. Extension detects the old format
+2. Prompts you to migrate
+3. Optionally upgrades the saved file in-place
+4. Proceeds with restore using migrated data
+
+**No data loss:** All package information is preserved during migration.
 
 ## Troubleshooting Backups
 
@@ -171,6 +202,11 @@ gh auth login
 
 **Cause:** No backup created yet  
 **Fix:** Run `/package-guard → Save backup to file + Gist`
+
+### "Legacy Backup Detected" message
+
+**Cause:** Restoring from pre-v0.9.0 backup  
+**Fix:** Click "Yes" to migrate — all data will be preserved
 
 ---
 

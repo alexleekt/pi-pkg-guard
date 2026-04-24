@@ -1,0 +1,53 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+	"title": "Package Guard Package Snapshot",
+	"description": "Schema for pi-pkg-guard snapshot files containing npm global package inventory",
+	"type": "object",
+	"required": ["$schema", "timestamp", "npmPackages"],
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "Reference to this JSON schema. Accepts any pi-pkg-guard version tag or main branch.",
+			"anyOf": [
+				{
+					"const": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json"
+				},
+				{
+					"pattern": "^https://raw\\.githubusercontent\\.com/alexleekt/pi-pkg-guard/v\\d+\\.\\d+\\.\\d+/schema/package-snapshot\\.json$"
+				},
+				{
+					"pattern": "^https://raw\\.githubusercontent\\.com/alexleekt/pi-pkg-guard/refs/tags/v\\d+\\.\\d+\\.\\d+/schema/package-snapshot\\.json$"
+				},
+				{
+					"const": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/refs/heads/main/schema/package-snapshot.json"
+				},
+				{
+					"const": "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/main/schema/package-snapshot.json"
+				}
+			]
+		},
+		"timestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "ISO 8601 timestamp when the snapshot was created"
+		},
+		"npmPackages": {
+			"type": "array",
+			"description": "List of pi-related packages installed globally via npm (candidates for pi registration)",
+			"items": {
+				"type": "string",
+				"description": "Package name (detected via pi- prefix or pi-coding-agent keyword)"
+			}
+		},
+		"excludedPackages": {
+			"type": "array",
+			"description": "Optional list of packages to exclude from registration prompts",
+			"items": {
+				"type": "string",
+				"description": "Package name to exclude from registration"
+			}
+		}
+	},
+	"additionalProperties": false
+}

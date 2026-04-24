@@ -35,8 +35,9 @@ An **unregistered package** is a pi extension installed via npm but not register
 - **Startup check** — Warns if unregistered packages found (debounced to once/hour)
 - **npm guard** — Warns when you run `npm install -g pi-*`
 - **Scan & Sync** — Find and register unregistered packages automatically
-- **Backup** — Save to local file + optional GitHub Gist
-- **Restore** — Selectively restore packages from backup
+- **Backup** — Save to local file + optional GitHub Gist (with versioned schema)
+- **Restore** — Selectively restore packages from backup with automatic legacy migration
+- **Schema Validation** — Strict backup validation with `$schema` field for future-proofing
 - **Multi-language** — English, Spanish, and more (ICU MessageFormat)
 
 ---
