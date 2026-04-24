@@ -979,6 +979,8 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 				// Section headers (═══) are selectable but act as visual anchors
 				// Empty strings filtered out, so no handling needed
 				if (choice === undefined || choice === t("menu.exit")) {
+					// Clear the status widget when exiting the menu
+					ctx.ui.setWidget("pi-pkg-guard:status", []);
 					return;
 				}
 
