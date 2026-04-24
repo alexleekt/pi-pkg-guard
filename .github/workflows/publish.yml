@@ -39,7 +39,7 @@ jobs:
       - name: Run checks
         run: |
           npx @biomejs/biome check .
-          node --test test/analysis.test.ts test/guards.test.ts test/regex.test.ts
+          npx tsx --test test/**/*.test.ts
           npx tsc --noEmit --skipLibCheck
 
       - name: Bump version (if specified)

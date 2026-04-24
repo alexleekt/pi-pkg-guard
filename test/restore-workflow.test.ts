@@ -6,10 +6,10 @@
  */
 
 import assert from "node:assert";
-import { describe, it } from "node:test";
-import { isPackageSnapshot, isValidBackupPath } from "../extensions/index.js";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { describe, it } from "node:test";
+import { isPackageSnapshot, isValidBackupPath } from "../extensions/index.js";
 
 describe("isPackageSnapshot type guard", () => {
 	it("accepts valid package snapshot", () => {
