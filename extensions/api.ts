@@ -22,10 +22,9 @@
  *
  * // Validate backup data
  * const backup = {
- *   timestamp: "2026-04-23",
- *   npmPackages: ["pi-foo"],
- *   registeredPackages: [],
- *   unregisteredPackages: ["pi-foo"]
+ *   $schema: "https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+ *   timestamp: "2026-04-23T10:30:00Z",
+ *   npmPackages: ["pi-foo"]
  * };
  * if (isPackageSnapshot(backup)) {
  *   console.log("Valid backup structure");
