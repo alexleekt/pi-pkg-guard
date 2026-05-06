@@ -38,7 +38,7 @@ const DEFAULT_BACKUP_PATH = `${homedir()}/.pi/agent/package-guard-backup.json`;
 // - Contains '/pi-' in scope (e.g., @scope/pi-foo)
 const PI_NAME_PATTERN = /(^pi-|-pi$|\/pi-)/;
 // Keywords that indicate a package is a pi extension
-const PI_KEYWORDS = ["pi-coding-agent", "pi-extension", "pi-package"];
+export const PI_KEYWORDS = ["pi-coding-agent", "pi-extension", "pi-package"];
 
 // NPM cache to prevent repeated execSync calls during menu loops
 const NPM_CACHE_TTL_MS = 5000; // 5 second cache
@@ -75,6 +75,7 @@ export interface ExtensionSettings {
 	backupPath?: string;
 	gistId?: string;
 	gistEnabled?: boolean;
+	knownKeywordPackages?: string[];
 }
 
 export interface PackageSnapshot {
@@ -146,6 +147,11 @@ export function isExtensionSettings(
 		typeof candidate.gistEnabled !== "boolean"
 	) {
 		return false;
+	}
+	if (candidate.knownKeywordPackages !== undefined) {
+		if (!Array.isArray(candidate.knownKeywordPackages)) return false;
+		if (!candidate.knownKeywordPackages.every((p) => typeof p === "string"))
+			return false;
 	}
 
 	return true;
@@ -407,8 +413,42 @@ export function hasPiExtensionKeyword(
 		const keywords = pkg.keywords || [];
 		return keywords.some((kw) => PI_KEYWORDS.includes(kw));
 	} catch {
-		// If we can't read package.json, fall back to name-only detection
-		return true;
+		// If we can't read package.json, rely on name pattern only (return false)
+		return false;
+	}
+}
+
+/**
+ * Get packages detected via keywords only (not matching naming patterns).
+ * Used to auto-populate knownKeywordPackages for npm guard warnings.
+ */
+export function getKeywordOnlyPackages(): string[] {
+	try {
+		const output = execSync("npm list -g --json --depth=0", {
+			encoding: "utf-8",
+			timeout: 30000,
+		});
+
+		const parsed = JSON.parse(output) as {
+			dependencies?: Record<string, unknown>;
+		};
+		const deps = parsed.dependencies || {};
+
+		const globalPrefix = execSync("npm prefix -g", {
+			encoding: "utf-8",
+			timeout: 5000,
+		}).trim();
+		const nodeModulesPath = `${globalPrefix}/lib/node_modules`;
+
+		return Object.keys(deps).filter(
+			(name) =>
+				name !== CORE_PACKAGE &&
+				name !== SELF_PACKAGE &&
+				!PI_NAME_PATTERN.test(name) && // Does NOT match naming pattern
+				hasPiExtensionKeyword(nodeModulesPath, name), // But HAS pi keywords
+		);
+	} catch {
+		return [];
 	}
 }
 
@@ -439,14 +479,13 @@ export function getNpmGlobalPackages(): string[] {
 
 		const result = Object.keys(deps).filter(
 			(name) =>
-				// Match name patterns: pi-*, *-pi, @scope/pi-*
-				PI_NAME_PATTERN.test(name) &&
 				// Exclude core package
 				name !== CORE_PACKAGE &&
 				// Exclude self (dev mode uses symlink, not npm)
 				name !== SELF_PACKAGE &&
-				// Validate via package.json keywords (local read, no network)
-				hasPiExtensionKeyword(nodeModulesPath, name),
+				// Include if matches naming pattern OR has pi keywords in package.json
+				(PI_NAME_PATTERN.test(name) ||
+					hasPiExtensionKeyword(nodeModulesPath, name)),
 		);
 
 		// Update cache
@@ -834,6 +873,18 @@ async function executeScan(ctx: ExtensionCommandContext): Promise<void> {
 		`${t("scan.success", { count: status.unregistered.length })}:\n${status.unregistered.map((p) => `  - npm:${p}`).join("\n")}${t("scan.reload_hint")}`,
 		"info",
 	);
+
+	// Auto-discover and persist keyword-only packages for npm guard warnings
+	const keywordOnlyPackages = getKeywordOnlyPackages();
+	if (keywordOnlyPackages.length > 0) {
+		const config = readExtensionSettings();
+		const known = new Set(config.knownKeywordPackages || []);
+		const newPackages = keywordOnlyPackages.filter((p) => !known.has(p));
+		if (newPackages.length > 0) {
+			config.knownKeywordPackages = [...known, ...newPackages];
+			writeExtensionSettings(config);
+		}
+	}
 }
 
 async function executeBackup(ctx: ExtensionCommandContext): Promise<void> {
@@ -1388,7 +1439,11 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 		if (!isBashToolInput(input)) return;
 
 		const command = input.command || "";
-		const { isMatch, packageName } = isGlobalPiInstall(command);
+		const config = readExtensionSettings();
+		const { isMatch, packageName } = isGlobalPiInstall(
+			command,
+			config.knownKeywordPackages,
+		);
 
 		if (isMatch && packageName) {
 			ctx.ui.notify(t("npm_guard.warning", { packageName }), "warning");
@@ -1401,12 +1456,16 @@ export const NPM_GLOBAL_PATTERN =
 	/npm\s+(?:install|i)(?:\s+\S+)*\s+(?:-g|--global)\b/;
 // Matches: pi-foo (start), lsp-pi (end), @scope/pi-foo (scoped), @scope/lsp-pi (scoped with suffix)
 export const PI_PACKAGE_PATTERN =
-	/(?:^|\s|\/)pi-[a-z0-9-]+|(?:^|\s|\/)[a-z0-9-]+-pi(?:\s|$|@)/;
+	/(?:^|\s|\/|@)pi-[a-z0-9-]+|(?:^|\s|\/|@)[a-z0-9-]+-pi(?:\s|$|@)/;
 
 /**
  * Check if a bash command is a global npm install of a pi package.
+ * Also checks against known keyword-only packages for complete coverage.
  */
-export function isGlobalPiInstall(command: string): {
+export function isGlobalPiInstall(
+	command: string,
+	knownKeywordPackages: string[] = [],
+): {
 	isMatch: boolean;
 	packageName?: string;
 } {
@@ -1415,19 +1474,28 @@ export function isGlobalPiInstall(command: string): {
 	}
 
 	const match = command.match(PI_PACKAGE_PATTERN);
-	if (!match) {
-		return { isMatch: false };
+	if (match) {
+		// Clean up the match - remove leading/trailing spaces and slashes
+		let packageName = match[0].trim();
+		if (packageName.startsWith("/")) {
+			packageName = packageName.slice(1);
+		}
+		// For scoped packages, extract just the package name (after the last /)
+		if (packageName.includes("/")) {
+			packageName = packageName.split("/").pop() || packageName;
+		}
+		return { isMatch: true, packageName };
 	}
 
-	// Clean up the match - remove leading/trailing spaces and slashes
-	let packageName = match[0].trim();
-	if (packageName.startsWith("/")) {
-		packageName = packageName.slice(1);
-	}
-	// For scoped packages, extract just the package name (after the last /)
-	if (packageName.includes("/")) {
-		packageName = packageName.split("/").pop() || packageName;
+	// Check against known keyword-only packages
+	for (const pkg of knownKeywordPackages) {
+		// Match exact package name or @scope/pkgname pattern
+		const escaped = pkg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		const pattern = new RegExp(`(?:^|\\s)${escaped}(?:\\s|$|@)`);
+		if (pattern.test(command)) {
+			return { isMatch: true, packageName: pkg.split("/").pop() || pkg };
+		}
 	}
 
-	return { isMatch: true, packageName };
+	return { isMatch: false };
 }

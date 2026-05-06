@@ -138,6 +138,18 @@ describe("isGlobalPiInstall", () => {
 		assert.strictEqual(result.packageName, "pi-tool");
 	});
 
+	it("detects scoped package ending with -pi suffix", () => {
+		const result = isGlobalPiInstall("npm install -g @a5c-ai/babysitter-pi");
+		assert.strictEqual(result.isMatch, true);
+		assert.strictEqual(result.packageName, "babysitter-pi");
+	});
+
+	it("detects scoped package ending with -pi with @org/scope", () => {
+		const result = isGlobalPiInstall("npm i -g @myorg/extension-pi");
+		assert.strictEqual(result.isMatch, true);
+		assert.strictEqual(result.packageName, "extension-pi");
+	});
+
 	it("handles empty string", () => {
 		const result = isGlobalPiInstall("");
 		assert.strictEqual(result.isMatch, false);

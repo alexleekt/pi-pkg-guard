@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-05-05
+
+### Added
+
+- **Keyword-Based Detection**: Detect pi extensions without conventional naming:
+  - `PI_KEYWORDS` exported constant: `["pi-coding-agent", "pi-extension", "pi-package"]`
+  - `hasPiExtensionKeyword()` reads package.json and checks for pi keywords
+  - `getKeywordOnlyPackages()` auto-discovers packages via npm list + keyword scan
+  - Enhanced `isGlobalPiInstall()` with `knownKeywordPackages` parameter
+  - Settings persistence for discovered keyword-only packages
+  - Comprehensive test coverage (new `test/keyword-detection.test.ts`)
+  - Scoped `-pi` suffix detection tests added to `npm-guard.test.ts` and `regex.test.ts`
+
+This enables detection of packages like `@touchskyer/memex` and `context-mode`
+that are pi extensions but don't use `pi-*` or `*-pi` naming conventions.
+
 ## [0.10.0] - 2026-04-24
 
 ### Added

@@ -7,7 +7,7 @@ import { describe, it } from "node:test";
 
 const NPM_GLOBAL_PATTERN = /npm\s+(?:install|i)(?:\s+\S+)*\s+(?:-g|--global)\b/;
 const PI_PACKAGE_PATTERN =
-	/(?:^|\s|\/)pi-[a-z0-9-]+|(?:^|\s|\/)[a-z0-9-]+-pi(?:\s|$|@)/;
+	/(?:^|\s|\/|@)pi-[a-z0-9-]+|(?:^|\s|\/|@)[a-z0-9-]+-pi(?:\s|$|@)/;
 
 function isGlobalPiInstall(command: string): {
 	isMatch: boolean;
@@ -49,6 +49,20 @@ describe("isGlobalPiInstall", () => {
 		it("detects --global flag", () => {
 			const result = isGlobalPiInstall("npm install --global pi-foo");
 			assert.strictEqual(result.isMatch, true);
+		});
+	});
+
+	describe("scoped packages with -pi suffix", () => {
+		it("detects @a5c-ai/babysitter-pi", () => {
+			const result = isGlobalPiInstall("npm install -g @a5c-ai/babysitter-pi");
+			assert.strictEqual(result.isMatch, true);
+			assert.strictEqual(result.packageName, "babysitter-pi");
+		});
+
+		it("detects @org/extension-pi", () => {
+			const result = isGlobalPiInstall("npm i --global @org/extension-pi");
+			assert.strictEqual(result.isMatch, true);
+			assert.strictEqual(result.packageName, "extension-pi");
 		});
 	});
 
