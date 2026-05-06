@@ -7,10 +7,10 @@
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import {
-	hasPiExtensionKeyword,
-	isGlobalPiInstall,
 	PI_KEYWORDS,
 	PI_PACKAGE_PATTERN,
+	hasPiExtensionKeyword,
+	isGlobalPiInstall,
 } from "../extensions/index.js";
 
 describe("PI_KEYWORDS", () => {
