@@ -45,6 +45,14 @@ const NPM_CACHE_TTL_MS = 5000; // 5 second cache
 let npmGlobalCache: string[] | null = null;
 let npmGlobalCacheTime = 0;
 
+// NPM prefix cache (rarely changes)
+const NPM_PREFIX_CACHE_TTL_MS = 30000; // 30 second cache
+let npmPrefixCache: string | null = null;
+let npmPrefixCacheTime = 0;
+
+// Keyword regex cache for isGlobalPiInstall
+export const keywordRegexCache = new Map<string, RegExp>();
+
 // Package Snapshot Schema URL (for backup validation)
 const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/earendil-works/pi-mono/v${EXTENSION_VERSION}/packages/pi-pkg-guard/schema/package-snapshot.json`;
 
@@ -428,37 +436,28 @@ export function hasPiExtensionKeyword(
 }
 
 /**
+ * Get the npm global prefix with caching.
+ */
+function getNpmPrefix(): string {
+	const now = Date.now();
+	if (npmPrefixCache && now - npmPrefixCacheTime < NPM_PREFIX_CACHE_TTL_MS) {
+		return npmPrefixCache;
+	}
+	const prefix = execSync("npm prefix -g", {
+		encoding: "utf-8",
+		timeout: 5000,
+	}).trim();
+	npmPrefixCache = prefix;
+	npmPrefixCacheTime = now;
+	return prefix;
+}
+
+/**
  * Get packages detected via keywords only (not matching naming patterns).
  * Used to auto-populate knownKeywordPackages for npm guard warnings.
  */
 export function getKeywordOnlyPackages(): string[] {
-	try {
-		const output = execSync("npm list -g --json --depth=0", {
-			encoding: "utf-8",
-			timeout: 30000,
-		});
-
-		const parsed = JSON.parse(output) as {
-			dependencies?: Record<string, unknown>;
-		};
-		const deps = parsed.dependencies || {};
-
-		const globalPrefix = execSync("npm prefix -g", {
-			encoding: "utf-8",
-			timeout: 5000,
-		}).trim();
-		const nodeModulesPath = `${globalPrefix}/lib/node_modules`;
-
-		return Object.keys(deps).filter(
-			(name) =>
-				name !== CORE_PACKAGE &&
-				name !== SELF_PACKAGE &&
-				!PI_NAME_PATTERN.test(name) && // Does NOT match naming pattern
-				hasPiExtensionKeyword(nodeModulesPath, name), // But HAS pi keywords
-		);
-	} catch {
-		return [];
-	}
+	return getNpmGlobalPackages().filter((name) => !PI_NAME_PATTERN.test(name));
 }
 
 export function getNpmGlobalPackages(): string[] {
@@ -480,10 +479,7 @@ export function getNpmGlobalPackages(): string[] {
 		const deps = parsed.dependencies || {};
 
 		// Get global prefix for reading package.json files
-		const globalPrefix = execSync("npm prefix -g", {
-			encoding: "utf-8",
-			timeout: 5000,
-		}).trim();
+		const globalPrefix = getNpmPrefix();
 		const nodeModulesPath = `${globalPrefix}/lib/node_modules`;
 
 		const result = Object.keys(deps).filter(
@@ -1497,13 +1493,27 @@ export function isGlobalPiInstall(
 		return { isMatch: true, packageName };
 	}
 
-	// Check against known keyword-only packages
-	for (const pkg of knownKeywordPackages) {
-		// Match exact package name or @scope/pkgname pattern
-		const escaped = pkg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		const pattern = new RegExp(`(?:^|\\s)${escaped}(?:\\s|$|@)`);
-		if (pattern.test(command)) {
-			return { isMatch: true, packageName: pkg.split("/").pop() || pkg };
+	// Check against known keyword-only packages using pre-compiled regex
+	if (knownKeywordPackages.length > 0) {
+		const cacheKey = knownKeywordPackages.join(",");
+		let keywordPattern = keywordRegexCache.get(cacheKey);
+		if (!keywordPattern) {
+			const escaped = knownKeywordPackages
+				.map((pkg) => pkg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+				.join("|");
+			keywordPattern = new RegExp(`(?:^|\\s)(?:${escaped})(?:\\s|$|@)`);
+			keywordRegexCache.set(cacheKey, keywordPattern);
+		}
+		if (keywordPattern.test(command)) {
+			// Find which package matched
+			for (const pkg of knownKeywordPackages) {
+				if (command.includes(pkg)) {
+					return {
+						isMatch: true,
+						packageName: pkg.split("/").pop() || pkg,
+					};
+				}
+			}
 		}
 	}
 
