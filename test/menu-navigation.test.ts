@@ -8,48 +8,52 @@ import assert from "node:assert";
 import { describe, it } from "node:test";
 
 describe("menu structure and sections", () => {
-	it("has Package Operations section header", () => {
+	it("has flat menu without section headers", () => {
 		const options = [
-			"═══ Package Operations ═══",
-			"Scan for unregistered packages",
-			"Save backup",
-			"Restore packages",
+			"1. Scan for unregistered packages",
+			"2. Save backup",
+			"3. Restore packages",
 		];
-		assert.ok(options[0].includes("Package Operations"));
-	});
-
-	it("has Configuration section header", () => {
-		const options = [
-			"═══ Configuration ═══",
-			"Change backup path",
-			"Setup Gist",
-		];
-		assert.ok(options[0].includes("Configuration"));
-	});
-
-	it("has System section header", () => {
-		const options = ["═══ System ═══", "Help", "Exit"];
-		assert.ok(options[0].includes("System"));
+		// Numbered for quick in-menu navigation
+		assert.ok(options.every((o) => /^\d\.\s/.test(o)));
 	});
 
 	it("filters out empty strings from menu", () => {
 		// Simulates: .filter(Boolean)
 		const rawOptions = [
-			"═══ Package Operations ═══",
-			"Scan",
+			"1. Scan",
 			"", // conditional empty
-			"Backup",
+			"2. Backup",
 			"", // another empty
-			"═══ Exit ═══",
+			"3. Exit",
 		];
 		const filtered = rawOptions.filter(Boolean);
 
-		assert.strictEqual(filtered.length, 4);
+		assert.strictEqual(filtered.length, 3);
 		assert.ok(!filtered.includes(""));
 	});
 });
 
-describe("menu conditional options based on config", () => {
+describe("simplified menu has single config entry", () => {
+	it("shows single Configuration settings item regardless of config state", () => {
+		const options = [
+			"1. Scan",
+			"2. Save backup",
+			"3. Restore",
+			"",
+			"4. Configuration settings",
+			"",
+			"5. Help",
+			"6. Exit",
+		].filter(Boolean);
+
+		assert.ok(options.includes("4. Configuration settings"));
+		assert.ok(!options.includes("Set up new GitHub Gist backup"));
+		assert.ok(!options.includes("Enable automatic Gist sync"));
+	});
+});
+
+describe("config menu conditional options", () => {
 	it("shows gist_create when no gist and gh installed", () => {
 		const config = { gistId: undefined };
 		const ghInstalled = true;
@@ -120,7 +124,7 @@ describe("menu conditional options based on config", () => {
 describe("menu selection handling", () => {
 	it("exits on undefined choice", () => {
 		const choice: string | undefined = undefined;
-		const exitOption = "Exit";
+		const exitOption = "6. Exit";
 
 		const shouldExit = choice === undefined || choice === exitOption;
 
@@ -128,8 +132,8 @@ describe("menu selection handling", () => {
 	});
 
 	it("exits on exit option", () => {
-		const choice = "Exit";
-		const exitOption = "Exit";
+		const choice = "6. Exit";
+		const exitOption = "6. Exit";
 
 		const shouldExit = choice === undefined || choice === exitOption;
 
@@ -137,8 +141,8 @@ describe("menu selection handling", () => {
 	});
 
 	it("continues on valid menu selection", () => {
-		const choice = "Scan for unregistered packages" as string;
-		const exitOption = "Exit" as string;
+		const choice = "1. Scan for unregistered packages" as string;
+		const exitOption = "6. Exit" as string;
 
 		const shouldExit = choice === undefined || choice === exitOption;
 
@@ -148,8 +152,8 @@ describe("menu selection handling", () => {
 
 describe("menu action routing", () => {
 	it("routes scan choice to executeScan", () => {
-		const choice = "Scan for unregistered packages" as string;
-		const scanLabel = "Scan for unregistered packages" as string;
+		const choice = "1. Scan for unregistered packages" as string;
+		const scanLabel = "1. Scan for unregistered packages" as string;
 
 		const isScan = choice === scanLabel;
 
@@ -157,8 +161,8 @@ describe("menu action routing", () => {
 	});
 
 	it("routes backup choice to executeBackup", () => {
-		const choice = "Save backup to file + Gist" as string;
-		const backupLabel = "Save backup to file + Gist" as string;
+		const choice = "2. Save backup to file + Gist" as string;
+		const backupLabel = "2. Save backup to file + Gist" as string;
 
 		const isBackup = choice === backupLabel;
 
@@ -166,8 +170,8 @@ describe("menu action routing", () => {
 	});
 
 	it("routes restore choice to executeRestore", () => {
-		const choice = "Restore packages from backup" as string;
-		const restoreLabel = "Restore packages from backup" as string;
+		const choice = "3. Restore packages from backup" as string;
+		const restoreLabel = "3. Restore packages from backup" as string;
 
 		const isRestore = choice === restoreLabel;
 
@@ -175,12 +179,125 @@ describe("menu action routing", () => {
 	});
 
 	it("routes help choice to showHelp", () => {
-		const choice = "Show help";
-		const helpLabel = "Show help";
+		const choice = "5. Show help and usage info";
+		const helpLabel = "5. Show help and usage info";
 
 		const isHelp = choice === helpLabel;
 
 		assert.strictEqual(isHelp, true);
+	});
+
+	it("routes config choice to executeConfig", () => {
+		const choice = "4. Configuration settings";
+		const configLabel = "4. Configuration settings";
+
+		const isConfig = choice === configLabel;
+
+		assert.strictEqual(isConfig, true);
+	});
+});
+
+describe("contextual scan labels", () => {
+	it("shows fix label when unregistered packages exist", () => {
+		const unregisteredCount = 3;
+		const hasUnregistered = true;
+		const label = hasUnregistered
+			? `🔧 Fix ${unregisteredCount} unregistered packages`
+			: "Find unregistered packages";
+
+		assert.strictEqual(label, "🔧 Fix 3 unregistered packages");
+	});
+
+	it("shows generic label when no unregistered packages", () => {
+		const hasUnregistered = false;
+		const label = hasUnregistered
+			? "🔧 Fix 0 unregistered packages"
+			: "Find unregistered packages";
+
+		assert.strictEqual(label, "Find unregistered packages");
+	});
+
+	it("uses singular form for one unregistered package", () => {
+		const unregisteredCount = 1;
+		const hasUnregistered = true;
+		const label = hasUnregistered
+			? `🔧 Fix ${unregisteredCount} unregistered ${unregisteredCount === 1 ? "package" : "packages"}`
+			: "Find unregistered packages";
+
+		assert.strictEqual(label, "🔧 Fix 1 unregistered package");
+	});
+});
+
+describe("subcommand routing", () => {
+	it("routes scan subcommand", () => {
+		const args = "scan";
+		const subcommand = (args || "").trim().toLowerCase();
+		assert.strictEqual(subcommand, "scan");
+	});
+
+	it("routes backup subcommand with whitespace", () => {
+		const args = "  backup  ";
+		const subcommand = (args || "").trim().toLowerCase();
+		assert.strictEqual(subcommand, "backup");
+	});
+
+	it("routes restore subcommand case-insensitively", () => {
+		const args = "RESTORE";
+		const subcommand = (args || "").trim().toLowerCase();
+		assert.strictEqual(subcommand, "restore");
+	});
+
+	it("routes help subcommand", () => {
+		const args = "help";
+		const subcommand = (args || "").trim().toLowerCase();
+		assert.strictEqual(subcommand, "help");
+	});
+
+	it("routes ? alias to help", () => {
+		const args = "?";
+		const subcommand = (args || "").trim().toLowerCase();
+		assert.strictEqual(subcommand, "?");
+	});
+
+	it("falls through to menu for empty args", () => {
+		const args = "";
+		const subcommand = (args || "").trim().toLowerCase();
+		assert.strictEqual(subcommand, "");
+	});
+
+	it("falls through to menu for unknown subcommand", () => {
+		const args = "foo";
+		const subcommand = (args || "").trim().toLowerCase();
+		const known = ["scan", "backup", "restore", "help", "?"];
+		assert.ok(!known.includes(subcommand));
+	});
+});
+
+describe("restore batch sizing logic", () => {
+	it("uses single confirm for 3 or fewer packages", () => {
+		const packagesToRestore = ["pi-foo", "pi-bar", "pi-baz"];
+		const usesBulkPrompt = packagesToRestore.length > 3;
+		assert.strictEqual(usesBulkPrompt, false);
+	});
+
+	it("uses bulk prompt for more than 3 packages", () => {
+		const packagesToRestore = ["pi-a", "pi-b", "pi-c", "pi-d", "pi-e"];
+		const usesBulkPrompt = packagesToRestore.length > 3;
+		assert.strictEqual(usesBulkPrompt, true);
+	});
+});
+
+describe("scan batch sizing logic", () => {
+	it("auto-registers for 3 or fewer unregistered packages", () => {
+		const unregistered = ["pi-foo", "pi-bar", "pi-baz"];
+		const shouldAskFirst = unregistered.length > 3;
+		assert.strictEqual(shouldAskFirst, false);
+	});
+
+	it("asks before registering for more than 3 packages", () => {
+		const unregistered = ["pi-a", "pi-b", "pi-c", "pi-d", "pi-e"];
+		const shouldAskFirst = unregistered.length > 3;
+		assert.strictEqual(shouldAskFirst, true);
 	});
 });
 
