@@ -83,7 +83,6 @@ describe("session_start behavior patterns", () => {
 	});
 
 	it("status message includes unregistered count", () => {
-		// Verify the i18n message pattern used in session_start
 		const count = 3;
 		const expectedPattern = /3/;
 		const statusMessage = `${count} unregistered packages detected`;

@@ -5,9 +5,8 @@
  *
  * NOTE: The validatePackageSnapshot implementation is duplicated here rather than
  * imported from extensions/index.ts. This is intentional isolation - importing
- * from the extension would trigger the entire i18n initialization chain and
- * other side effects. The test file mirrors the implementation to avoid
- * loading the full extension while testing the validation logic.
+ * from the extension would trigger side effects. The test file mirrors the
+ * implementation to avoid loading the full extension while testing the validation logic.
  */
 
 import assert from "node:assert";
@@ -17,7 +16,7 @@ import { describe, it } from "node:test";
 // Constants (mirroring extensions/index.ts)
 // =============================================================================
 
-const EXTENSION_VERSION = "0.9.0";
+const EXTENSION_VERSION = "0.11.0";
 const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/earendil-works/pi-mono/v${EXTENSION_VERSION}/packages/pi-pkg-guard/schema/package-snapshot.json`;
 
 // Accept schema URLs from any version tag, main branch, or refs/tags pattern

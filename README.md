@@ -32,7 +32,7 @@ An **unregistered package** is a pi extension installed via npm but not register
 
 ## Features
 
-- **Startup check** — Warns if unregistered packages found (debounced to once/hour)
+- **Startup check** — Warns if unregistered packages found
 - **npm guard** — Warns when you run `npm install -g pi-*`
 - **Scan & Sync** — Find and register unregistered packages automatically
 - **Backup** — Save to local file + optional GitHub Gist (with versioned schema)
