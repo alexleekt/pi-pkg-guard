@@ -130,10 +130,11 @@ describe("gist operation - ID extraction from URLs", () => {
 	});
 
 	it("handles URL with trailing whitespace", () => {
-		const stdout = "https://gist.github.com/user/abc123def456  \n";
+		const stdout =
+			"https://gist.github.com/user/abc123def45678901234567890123456  \n";
 		const gistId = extractGistId(stdout);
 
-		assert.strictEqual(gistId, "abc123def456");
+		assert.strictEqual(gistId, "abc123def45678901234567890123456");
 	});
 });
 

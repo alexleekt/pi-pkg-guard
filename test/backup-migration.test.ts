@@ -28,7 +28,7 @@ interface MigrationResult {
 // Migration Implementation (mirroring extensions/index.ts)
 // =============================================================================
 
-const EXTENSION_VERSION = "0.9.0";
+const EXTENSION_VERSION = "0.11.0";
 const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/earendil-works/pi-mono/v${EXTENSION_VERSION}/packages/pi-pkg-guard/schema/package-snapshot.json`;
 
 function isLegacyBackup(data: unknown): boolean {

@@ -160,6 +160,13 @@ export function isExtensionSettings(
 export function isBashToolInput(input: unknown): input is { command?: string } {
 	if (typeof input !== "object" || input === null) return false;
 	if (Array.isArray(input)) return false;
+	const candidate = input as Record<string, unknown>;
+	if (
+		candidate.command !== undefined &&
+		typeof candidate.command !== "string"
+	) {
+		return false;
+	}
 	return true;
 }
 
@@ -348,7 +355,9 @@ export function validatePackageSnapshot(data: unknown): ValidationResult {
  */
 export function extractGistId(input: string): string {
 	const trimmed = input.trim();
-	const match = trimmed.match(/gist\.github\.com\/(?:.*\/)?([a-f0-9]+)/);
+	const match = trimmed.match(
+		/gist\.github\.com\/(?:[\w-]+\/)?([a-f0-9]{32,})/i,
+	);
 	return match ? match[1] : trimmed;
 }
 
@@ -1198,7 +1207,8 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 	// Startup Check: Detect orphaned packages (max once per hour)
 	// ===========================================================================
 
-	pi.on("session_start", async (_event, ctx) => {
+	pi.on("session_start", async (event, ctx) => {
+		if (event.reason !== "startup") return;
 		const status = checkRegistrationStatus();
 		if (status.hasUnregistered) {
 			ctx.ui.setStatus(

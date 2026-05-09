@@ -9,93 +9,17 @@
  */
 
 import assert from "node:assert";
-import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, it } from "node:test";
 
-// =============================================================================
-// Type Guard Implementations (mirroring extensions/index.ts)
-// =============================================================================
-
-interface PiSettings {
-	packages?: string[];
-	extensions?: string[];
-}
-
-interface ExtensionSettings {
-	backupPath?: string;
-	gistId?: string;
-	gistEnabled?: boolean;
-}
-
-function isPiSettings(value: unknown): value is PiSettings {
-	if (typeof value !== "object" || value === null) return false;
-	if (Array.isArray(value)) return false;
-	const candidate = value as Record<string, unknown>;
-
-	if (candidate.packages !== undefined) {
-		if (!Array.isArray(candidate.packages)) return false;
-		if (!candidate.packages.every((p) => typeof p === "string")) return false;
-	}
-
-	if (candidate.extensions !== undefined) {
-		if (!Array.isArray(candidate.extensions)) return false;
-		if (!candidate.extensions.every((e) => typeof e === "string")) return false;
-	}
-
-	return true;
-}
-
-function isExtensionSettings(value: unknown): value is ExtensionSettings {
-	if (typeof value !== "object" || value === null) return false;
-	if (Array.isArray(value)) return false;
-	const candidate = value as Record<string, unknown>;
-
-	if (
-		candidate.backupPath !== undefined &&
-		typeof candidate.backupPath !== "string"
-	) {
-		return false;
-	}
-	if (candidate.gistId !== undefined && typeof candidate.gistId !== "string") {
-		return false;
-	}
-	if (
-		candidate.gistEnabled !== undefined &&
-		typeof candidate.gistEnabled !== "boolean"
-	) {
-		return false;
-	}
-
-	return true;
-}
-
-function isBashToolInput(input: unknown): input is { command?: string } {
-	if (typeof input !== "object" || input === null) return false;
-	if (Array.isArray(input)) return false;
-	return true;
-}
-
-function extractGistId(input: string): string {
-	const trimmed = input.trim();
-	const match = trimmed.match(/gist\.github\.com\/(?:.*\/)?([a-f0-9]+)/);
-	return match ? match[1] : trimmed;
-}
-
-function isValidGistId(gistId: string): boolean {
-	return /^[a-f0-9]+$/i.test(gistId);
-}
-
-function isValidBackupPath(backupPath: string): boolean {
-	const resolvedPath = join(backupPath);
-	const homeDir = homedir();
-	const allowedDirs = [join(homeDir, ".pi", "agent"), tmpdir()];
-
-	return allowedDirs.some(
-		(allowedDir) =>
-			resolvedPath === allowedDir || resolvedPath.startsWith(`${allowedDir}/`),
-	);
-}
+import {
+	extractGistId,
+	isBashToolInput,
+	isExtensionSettings,
+	isPiSettings,
+	isValidBackupPath,
+	isValidGistId,
+} from "../extensions/index.js";
 
 // =============================================================================
 // Test Suites
@@ -240,6 +164,15 @@ describe("isExtensionSettings", () => {
 				true,
 			);
 		});
+
+		it("accepts object with knownKeywordPackages array", () => {
+			assert.strictEqual(
+				isExtensionSettings({
+					knownKeywordPackages: ["foo-pi", "bar-pi"],
+				}),
+				true,
+			);
+		});
 	});
 
 	describe("invalid types (should return false)", () => {
@@ -296,6 +229,20 @@ describe("isExtensionSettings", () => {
 		it("accepts empty string gistId", () => {
 			// Empty string is still a valid string type
 			assert.strictEqual(isExtensionSettings({ gistId: "" }), true);
+		});
+
+		it("rejects knownKeywordPackages as non-array", () => {
+			assert.strictEqual(
+				isExtensionSettings({ knownKeywordPackages: "foo-pi" }),
+				false,
+			);
+		});
+
+		it("rejects knownKeywordPackages with non-string elements", () => {
+			assert.strictEqual(
+				isExtensionSettings({ knownKeywordPackages: ["foo-pi", 123] }),
+				false,
+			);
 		});
 	});
 });
@@ -359,23 +306,38 @@ describe("isBashToolInput", () => {
 describe("isValidGistId (security validation)", () => {
 	describe("valid inputs (should return true)", () => {
 		it("accepts lowercase hex string", () => {
-			assert.strictEqual(isValidGistId("abc123def456"), true);
+			assert.strictEqual(
+				isValidGistId("abc123def45678901234567890123456"),
+				true,
+			);
 		});
 
 		it("accepts uppercase hex string", () => {
-			assert.strictEqual(isValidGistId("ABC123DEF456"), true);
+			assert.strictEqual(
+				isValidGistId("ABC123DEF45678901234567890123456"),
+				true,
+			);
 		});
 
 		it("accepts mixed case hex string", () => {
-			assert.strictEqual(isValidGistId("AbC123dEf456"), true);
+			assert.strictEqual(
+				isValidGistId("AbC123dEf45678901234567890123456"),
+				true,
+			);
 		});
 
 		it("accepts numeric-only string", () => {
-			assert.strictEqual(isValidGistId("1234567890"), true);
+			assert.strictEqual(
+				isValidGistId("12345678901234567890123456789012"),
+				true,
+			);
 		});
 
 		it("accepts alpha-only string", () => {
-			assert.strictEqual(isValidGistId("abcdef"), true);
+			assert.strictEqual(
+				isValidGistId("abcdefabcdefabcdefabcdefabcdefab"),
+				true,
+			);
 		});
 	});
 
@@ -414,15 +376,19 @@ describe("extractGistId", () => {
 	describe("valid URL extraction", () => {
 		it("extracts ID from full URL with username", () => {
 			assert.strictEqual(
-				extractGistId("https://gist.github.com/username/abc123def456"),
-				"abc123def456",
+				extractGistId(
+					"https://gist.github.com/username/abc123def45678901234567890123456",
+				),
+				"abc123def45678901234567890123456",
 			);
 		});
 
 		it("extracts ID from URL without username", () => {
 			assert.strictEqual(
-				extractGistId("https://gist.github.com/abc123def456"),
-				"abc123def456",
+				extractGistId(
+					"https://gist.github.com/abc123def45678901234567890123456",
+				),
+				"abc123def45678901234567890123456",
 			);
 		});
 
@@ -432,8 +398,10 @@ describe("extractGistId", () => {
 
 		it("trims whitespace", () => {
 			assert.strictEqual(
-				extractGistId("  https://gist.github.com/user/abc123  "),
-				"abc123",
+				extractGistId(
+					"  https://gist.github.com/user/abc123def45678901234567890123456  ",
+				),
+				"abc123def45678901234567890123456",
 			);
 		});
 	});

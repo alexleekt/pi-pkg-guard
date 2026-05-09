@@ -18,15 +18,17 @@ import { join } from "node:path";
 describe("extractGistId", () => {
 	it("extracts ID from full URL with username", () => {
 		assert.strictEqual(
-			extractGistId("https://gist.github.com/username/abc123def456"),
-			"abc123def456",
+			extractGistId(
+				"https://gist.github.com/username/abc123def45678901234567890123456",
+			),
+			"abc123def45678901234567890123456",
 		);
 	});
 
 	it("extracts ID from URL without username", () => {
 		assert.strictEqual(
-			extractGistId("https://gist.github.com/abc123def456"),
-			"abc123def456",
+			extractGistId("https://gist.github.com/abc123def45678901234567890123456"),
+			"abc123def45678901234567890123456",
 		);
 	});
 
@@ -36,8 +38,10 @@ describe("extractGistId", () => {
 
 	it("trims whitespace", () => {
 		assert.strictEqual(
-			extractGistId("  https://gist.github.com/user/abc123  "),
-			"abc123",
+			extractGistId(
+				"  https://gist.github.com/user/abc123def45678901234567890123456  ",
+			),
+			"abc123def45678901234567890123456",
 		);
 	});
 });
