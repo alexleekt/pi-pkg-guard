@@ -17,7 +17,7 @@
 │         │                                               │
 │  ┌──────▼──────────────────────────────────────────────┐ │
 │  │                  pi Extension API                  │ │
-│  │  • Event handlers (session_start, before_tool)     │ │
+│  │  • Event handlers (session_start, tool_call)      │ │
 │  │  • Command registration                          │ │
 │  │  • UI context (widgets, menus, notifications)    │ │
 │  └──────┬─────────────────────────────────────────────┘ │
@@ -40,23 +40,28 @@
 
 ```
 extensions/
-├── index.ts              # Main extension (1068 lines)
+├── index.ts              # Main extension (~1700 lines)
 │   ├── Constants & Types       # L24-90
 │   ├── Type Guards             # L93-195
-│   ├── Gist Utilities          # L133-195
-│   ├── NPM Operations          # L198-237
-│   ├── Settings Operations     # L240-309
-│   ├── Package Analysis        # L312-368
-│   ├── Backup Operations       # L371-447
-│   ├── GitHub Gist Operations  # L398-585
-│   ├── Command Handlers        # L588-865
-│   └── Extension Entry Point   # L868-1068
+│   ├── Validation Utilities    # L198-237
+│   ├── NPM Operations          # L240-309
+│   ├── Settings Operations     # L312-368
+│   ├── Package Analysis        # L371-447
+│   ├── Backup Operations       # L450-580
+│   ├── GitHub Gist Operations  # L583-750
+│   ├── Command Handlers        # L753-1220
+│   │   ├── executeScan()       # Selective registration, reload prompt
+│   │   ├── executeBackup()     # Local + Gist sync
+│   │   ├── executeRestore()    # Bulk or granular restore
+│   │   ├── executeConfig()     # Dedicated config menu
+│   │   ├── selectPackages()    # Shared interactive selector
+│   │   └── showHelp()          # Help text
+│   └── Extension Entry Point   # L1220+
+│       ├── session_start       # Startup detection
+│       ├── registerCommand     # /package-guard with subcommand routing
+│       └── tool_call           # npm guard
 │
-└── i18n/
-    ├── index.ts          # i18n engine (formatMessage, t)
-    ├── en-US.ts          # English translations
-    ├── es-ES.ts          # Spanish translations
-    └── types.ts          # TypeScript definitions
+└── api.ts                # Public API exports
 ```
 
 ---
@@ -158,11 +163,11 @@ function isPiSettings(value: unknown): value is PiSettings {
 pi starts
     │
     ▼
-session_start event
+session_start { reason: "startup" }
     │
     ▼
-analyzePackages()
-    ├─► getNpmGlobalPackages() ──► npm list -g
+checkRegistrationStatus()
+    ├─► getNpmGlobalPackages() ──► npm list -g (cached 5s)
     ├─► getRegisteredPackages() ──► read settings.json
     │
     ▼
@@ -170,24 +175,34 @@ Compare lists
     │
     ▼
 unregistered packages found?
-    ├─► Yes: ctx.ui.setStatus(warning)
-    └─► No: clear status
+    ├─► Yes: ctx.ui.setStatus(STATUS_KEY, "N unregistered...")
+    └─► No: clear status (setStatus with no message)
 ```
 
 ### Menu Flow
 
 ```
-/package-guard command
+/package-guard [subcommand]
     │
     ▼
 pi.registerCommand handler
     │
     ▼
-While loop (menu loop)
+subcommand routing?
+    ├─► "scan"    ──► executeScan(ctx, { offerReload: true })
+    ├─► "backup"  ──► executeBackup(ctx)
+    ├─► "restore" ──► executeRestore(ctx)
+    ├─► "config"  ──► executeConfig(ctx)
+    ├─► "help"    ──► showHelp(ctx)
+    └─► (none/unknown) ──► interactive menu
+
+Interactive Menu Loop:
     │
-    ├─► analyzePackages() ──► fresh data
-    ├─► ctx.ui.setWidget(status) ──► show status
-    ├─► buildMenuOptions() ──► contextual items
+    ├─► checkRegistrationStatus() ──► fresh data
+    ├─► ctx.ui.setWidget(status) ──► contextual status
+    │      └─► ≤3 unregistered: show package names
+    ├─► buildMenuOptions() ──► contextual labels
+    │      └─► hasUnregistered? "🔧 Fix N packages" : "Find unregistered"
     ├─► ctx.ui.select(menu) ──► user choice
     │       │
     │       ▼

@@ -58,12 +58,12 @@ Then no warning should be displayed
 - **Pattern:** `/npm\s+(install|i)\s+.*(-g|--global)/` + package name contains `pi-`
 - **Timing:** Warning shown before command execution completes
 - **Non-blocking:** Warning doesn't prevent command execution
-- **Implementation:** `pi.on("before_tool", ...)` checking `isBashToolInput()`
+- **Implementation:** `pi.on("tool_call", ...)` checking `isBashToolInput()`
 
 ### Traceability
 | Component | File | Function/Line |
 |-----------|------|---------------|
-| Pattern Detection | `extensions/index.ts` | `pi.on("before_tool")` |
+| Pattern Detection | `extensions/index.ts` | `pi.on("tool_call")` |
 | Input Validation | `extensions/index.ts` | `isBashToolInput()` |
 | i18n Message | `extensions/i18n/en-US.ts` | `npm_guard.warning` |
 

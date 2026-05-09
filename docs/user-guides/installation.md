@@ -56,7 +56,7 @@ The extension will now load from your local repository. Use `just dev-status` to
 ### Development Commands
 
 ```bash
-just test          # Run test suite (179 tests)
+just test          # Run test suite (284 tests)
 just check         # Run all checks (format, lint, test, typecheck)
 just fix           # Fix auto-fixable issues
 just typecheck     # TypeScript type checking only
@@ -82,7 +82,7 @@ After installation, verify it's working:
 /package-guard
 ```
 
-You should see the package-guard menu with options for Scan, Backup, Restore, and Settings.
+You should see the package-guard menu with options for Scan, Backup, Restore, and Configuration. You can also use subcommands like `/package-guard scan` or `/package-guard config`.
 
 ---
 

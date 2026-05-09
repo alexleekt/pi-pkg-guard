@@ -10,8 +10,8 @@
 export default function (pi: PiApi) {
   // Event handlers
   pi.on("session_start", handler);
-  pi.on("before_tool", handler);
-  
+  pi.on("tool_call", handler);
+
   // Command registration
   pi.registerCommand("package-guard", commandConfig);
 }
@@ -33,17 +33,18 @@ pi.on("session_start", async (event, ctx) => {
 **Triggered:** When pi starts  
 **Purpose:** Detect unregistered packages and display warning
 
-### Before Tool
+### Tool Call (npm Guard)
 
 ```typescript
-pi.on("before_tool", async (input, ctx) => {
-  if (!isBashToolInput(input)) return;
+pi.on("tool_call", async (event, ctx) => {
+  if (event.toolName !== "bash") return;
+  if (!isBashToolInput(event.input)) return;
   // Check for npm install -g pi-*
 });
 ```
 
-**Triggered:** Before any tool execution  
-**Purpose:** Intercept npm install commands
+**Triggered:** Before bash tool execution  
+**Purpose:** Intercept npm install commands that would create unregistered packages
 
 ---
 
@@ -73,10 +74,17 @@ ctx.ui.notify(message, type);
 const choice = await ctx.ui.select(title, options);
 
 // Get user confirmation
-const confirmed = await ctx.ui.confirm(message);
+const confirmed = await ctx.ui.confirm(title, message);
 
 // Get text input
-const input = await ctx.ui.textInput(prompt);
+const input = await ctx.ui.input(prompt, defaultValue);
+
+// Set working message (progress indicator)
+ctx.ui.setWorkingMessage("Loading...");
+ctx.ui.setWorkingMessage(); // clear
+
+// Reload pi runtime
+await ctx.reload();
 ```
 
 ---
@@ -178,14 +186,85 @@ Migrates legacy backup format to current schema with `$schema` field.
 
 ---
 
+## In-Menu Navigation
+
+Menu items are prefixed with numbers for quick reference:
+
+| # | Label | Handler |
+|---|-------|---------|
+| 1 | `🔧 Fix N unregistered packages` / `Find unregistered packages` | `executeScan` |
+| 2 | `Save backup to file + Gist` | `executeBackup` |
+| 3 | `Restore packages from backup` | `executeRestore` |
+| 4 | `Configuration settings` | `executeConfig` |
+| 5 | `Show help and usage info` | `showHelp` |
+| 6 | `Exit` | — |
+
+Numbers are hardcoded prefixes on the string labels passed to `ctx.ui.select()`. Routing compares the full prefixed string.
+
+## Command Handlers
+
+### executeScan
+
+```typescript
+async function executeScan(
+  ctx: ExtensionCommandContext,
+  options?: { offerReload?: boolean }
+): Promise<void>
+```
+
+Scans for unregistered packages and registers them.
+
+- **≤3 packages:** Auto-registered immediately
+- **>3 packages:** Prompts for bulk or selective registration
+- **offerReload:** When true, offers to `ctx.reload()` after registration
+
+### executeBackup
+
+```typescript
+async function executeBackup(ctx: ExtensionCommandContext): Promise<void>
+```
+
+Saves backup locally and optionally syncs to GitHub Gist.
+
+### executeRestore
+
+```typescript
+async function executeRestore(ctx: ExtensionCommandContext): Promise<void>
+```
+
+Restores packages from backup with selective filtering.
+
+- **≤3 packages:** Single confirm dialog
+- **>3 packages:** Bulk prompt (`Restore all` / `Pick individually` / `Cancel`)
+
+### executeConfig
+
+```typescript
+async function executeConfig(ctx: ExtensionCommandContext): Promise<void>
+```
+
+Opens a dedicated configuration menu for backup path, Gist, and auto-sync settings.
+
+### selectPackages
+
+```typescript
+async function selectPackages(
+  ctx: ExtensionCommandContext,
+  packages: string[]
+): Promise<string[]>
+```
+
+Interactive package selector with include/skip/bulk options. Shared helper used by scan and restore flows.
+
 ## Constants
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `STATUS_KEY` | `"ext:pi-pkg-guard:v1"` | Status widget key |
-| `CHECK_INTERVAL_MS` | `3600000` | Debounce interval (1 hour) |
-| `NPM_CACHE_TTL` | `5000` | NPM cache TTL (5 seconds) |
-| `PI_NAME_PATTERN` | `/^pi-\|-pi$|\/pi-/` | Package name pattern |
+| `STATUS_KEY` | `"pi-pkg-guard:unregistered-packages"` | Status widget key |
+| `CHECK_INTERVAL_MS` | `3600000` | Startup check debounce (1 hour) |
+| `NPM_CACHE_TTL_MS` | `5000` | NPM cache TTL (5 seconds) |
+| `NPM_GLOBAL_PATTERN` | `/npm\s+(?:install\|i).*(-g\|--global)/` | Global npm install detection |
+| `PI_PACKAGE_PATTERN` | `/(?:^\|\s\|\/\|@)pi-[a-z0-9-]+/` | Package name pattern |
 | `PI_KEYWORDS` | `["pi-coding-agent", ...]` | Detection keywords |
 
 ---

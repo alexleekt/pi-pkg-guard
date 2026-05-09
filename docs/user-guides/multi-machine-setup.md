@@ -92,7 +92,7 @@ Work on multiple machines? Keep your pi extensions synchronized with GitHub Gist
 Enable auto-sync to skip the manual sync step:
 
 ```
-/package-guard → Configuration → Enable Gist auto-sync
+/package-guard config → Enable automatic Gist sync
 ```
 
 Now every backup automatically syncs to Gist.

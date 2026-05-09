@@ -36,7 +36,7 @@ Then I should see an error and the path should not be saved
 |-----------|------|---------------|
 | Menu Handler | `extensions/index.ts` | Path change handler |
 | Path Validation | `extensions/index.ts` | `isValidBackupPath()` |
-| Config Storage | `extensions/index.ts` | `writeGuardConfig()` |
+| Config Storage | `extensions/index.ts` | `writeExtensionSettings()` |
 
 ---
 
@@ -61,17 +61,17 @@ Then it should be validated using type guards before use
 
 ### Technical Notes
 - **Storage Location:** `~/.pi/agent/settings.json` under `pi-pkg-guard` key
-- **Type Safety:** Runtime validation via `isGuardConfig()` type guard
+- **Type Safety:** Runtime validation via `isExtensionSettings()` type guard
 - **Graceful Degradation:** Invalid config returns empty object, doesn't crash
 - **Atomic Updates:** Full settings object rewritten with proper formatting
-- **Implementation:** `readGuardConfig()`, `writeGuardConfig()`
+- **Implementation:** `readExtensionSettings()`, `writeExtensionSettings()`
 
 ### Traceability
 | Component | File | Function/Line |
 |-----------|------|---------------|
-| Config Reading | `extensions/index.ts` | `readGuardConfig()` |
-| Config Writing | `extensions/index.ts` | `writeGuardConfig()` |
-| Type Guard | `extensions/index.ts` | `isGuardConfig()` |
+| Config Reading | `extensions/index.ts` | `readExtensionSettings()` |
+| Config Writing | `extensions/index.ts` | `writeExtensionSettings()` |
+| Type Guard | `extensions/index.ts` | `isExtensionSettings()` |
 | Settings Path | `extensions/index.ts` | `SETTINGS_PATH` constant |
 
 ---

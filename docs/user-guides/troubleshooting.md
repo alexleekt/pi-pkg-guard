@@ -58,7 +58,7 @@ pi install npm:pi-pkg-guard
 
 **Diagnostic:**
 ```
-/package-guard → Find unregistered packages
+/package-guard scan
 ```
 
 If this shows unregistered packages, the startup check should work. Restart pi to trigger.
@@ -120,7 +120,7 @@ gh auth status
 
 **Fix:**
 ```
-/package-guard → Save backup to file + Gist
+/package-guard backup
 ```
 
 ### Restore shows no packages
@@ -160,7 +160,7 @@ Look for `"pi-pkg-guard"` section.
 **Recovery:**
 1. Find Gist on GitHub: https://gist.github.com/
 2. Copy Gist ID from URL
-3. Use `/package-guard → Switch to a different Gist`
+3. Use `/package-guard config` → `Switch to a different Gist`
 
 ---
 

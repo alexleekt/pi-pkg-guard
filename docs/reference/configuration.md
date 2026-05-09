@@ -20,7 +20,8 @@ Under the `pi-pkg-guard` key:
   "pi-pkg-guard": {
     "backupPath": "~/.pi/agent/package-guard-backup.json",
     "gistId": "abc123...",
-    "gistAutoSync": true
+    "gistEnabled": true,
+    "knownKeywordPackages": ["context-mode"]
   }
 }
 ```
@@ -67,20 +68,38 @@ Under the `pi-pkg-guard` key:
 
 ---
 
-### gistAutoSync
+### gistEnabled
 
 **Type:** `boolean`  
-**Default:** `true`  
-**Description:** Automatically sync backups to Gist
+**Default:** `true` (when `gistId` is set)  
+**Description:** Enable or disable automatic Gist sync
 
 **Behavior:**
 - When `true`: Every local backup also syncs to Gist
 - When `false`: Only local backup is created
+- Undefined (when no gist): Gist options not shown
 
 **Example:**
 ```json
 {
-  "gistAutoSync": true
+  "gistEnabled": true
+}
+```
+
+### knownKeywordPackages
+
+**Type:** `string[]`  
+**Default:** `[]`  
+**Description:** Auto-discovered keyword-only packages for npm guard warnings
+
+**Behavior:**
+- Automatically populated by `executeScan` when keyword-only packages are detected
+- Used by `isGlobalPiInstall` to warn on `npm install -g` for packages not matching `pi-*` naming
+
+**Example:**
+```json
+{
+  "knownKeywordPackages": ["context-mode", "memex"]
 }
 ```
 
@@ -94,6 +113,12 @@ Under the `pi-pkg-guard` key:
 /package-guard → Change where backups are saved
 /package-guard → Set up new GitHub Gist backup
 /package-guard → Enable/Disable Gist auto-sync
+```
+
+Or use the dedicated config subcommand:
+
+```
+/package-guard config
 ```
 
 ### Manual Edit

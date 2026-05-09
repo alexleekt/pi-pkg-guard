@@ -36,7 +36,7 @@ This epic covers the configuration management features that allow users to custo
 |-----------|----------------|
 | Storage Location | `~/.pi/agent/settings.json` |
 | Config Key | `pi-pkg-guard` |
-| Validation | Type guards (`isGuardConfig()`) |
+| Validation | Type guards (`isExtensionSettings()`) |
 | Allowed Paths | `~/.pi/agent/` and temp directories |
 
 ## Acceptance Criteria

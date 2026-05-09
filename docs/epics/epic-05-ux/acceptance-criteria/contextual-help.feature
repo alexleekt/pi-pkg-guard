@@ -11,8 +11,8 @@ Feature: Contextual Help
     Given I run "/package-guard"
     When I select "Show help and usage info"
     Then help text should appear in the chat transcript
-    And it should contain section: "What are orphaned packages?"
-    And it should contain section: "How to avoid creating orphans"
+    And it should contain section: "What are unregistered packages?"
+    And it should contain section: "How to avoid creating unregistered packages"
     And it should contain section: "Available actions"
     And it should contain section: "Pro tips"
 

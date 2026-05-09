@@ -105,9 +105,18 @@ test("should fetch npm packages", async () => {
 | File | Tests |
 |------|-------|
 | `analysis.test.ts` | Package analysis, unregistered detection |
+| `backup-migration.test.ts` | Legacy backup migration to current schema |
 | `gist.test.ts` | Gist utilities, ID validation, URL extraction |
-| `i18n-keys.test.ts` | Translation key consistency |
+| `gist-operations.test.ts` | Gist sync/create/delete/get operations |
+| `keyword-detection.test.ts` | Keyword-based package detection |
+| `menu-navigation.test.ts` | Menu structure, routing, contextual labels, subcommands |
+| `npm-guard.test.ts` | npm install guard pattern matching |
+| `package-snapshot-validation.test.ts` | Backup schema validation |
 | `regex.test.ts` | Pattern matching, command detection |
+| `restore-workflow.test.ts` | Restore filtering and batch logic |
+| `session-start.test.ts` | Startup detection behavior |
+| `tui-fixes.test.ts` | Status lifecycle and notification patterns |
+| `type-guards.test.ts` | Runtime type validation |
 
 ---
 

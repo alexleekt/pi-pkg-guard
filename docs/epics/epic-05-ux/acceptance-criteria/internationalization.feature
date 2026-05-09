@@ -25,24 +25,24 @@ Feature: Internationalization
   Scenario: Pluralization - singular
     Given a message with count 1
     When formatted
-    Then it should display "1 orphaned package"
+    Then it should display "1 unregistered package"
 
   Scenario: Pluralization - plural
     Given a message with count 3
     When formatted
-    Then it should display "3 orphaned packages"
+    Then it should display "3 unregistered packages"
 
   Scenario: ICU MessageFormat variables
-    Given message template: "Registered {count} orphaned {count, plural, one {package} other {packages}}"
+    Given message template: "Registered {count} unregistered {count, plural, one {package} other {packages}}"
     And count is 1
     When formatted
-    Then result should be: "Registered 1 orphaned package"
+    Then result should be: "Registered 1 unregistered package"
 
   Scenario: ICU MessageFormat plural
-    Given message template: "Found {count} orphaned {count, plural, one {package} other {packages}}"
+    Given message template: "Found {count} unregistered {count, plural, one {package} other {packages}}"
     And count is 5
     When formatted
-    Then result should be: "Found 5 orphaned packages"
+    Then result should be: "Found 5 unregistered packages"
 
   Scenario: New locale registration
     Given a new translation dictionary for "fr-FR"

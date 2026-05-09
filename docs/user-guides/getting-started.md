@@ -34,12 +34,12 @@ That's it! The extension is now installed and active.
 ## Your First Scan
 
 1. **Start pi** (if not already running)
-2. **Run the package-guard command:**
+2. **Run the scan subcommand:**
    ```
-   /package-guard
+   /package-guard scan
    ```
 
-3. **Select "Find unregistered packages"** from the menu
+   Or open the menu and select the contextual scan option.
 
 You'll see one of two results:
 
@@ -48,14 +48,21 @@ You'll see one of two results:
 ✓ All pi packages are registered. No unregistered packages found.
 ```
 
-### ⚠️ unregistered packages Detected
+### ⚠️ Unregistered packages Detected
+For 3 or fewer packages, they are auto-registered immediately:
 ```
-✓ Registered 3 unregistered package(s) with pi:
-  - pi-token-burden
-  - pi-timer
-  - pi-backup
+✓ Registered 3 packages with pi:
+  - npm:pi-token-burden
+  - npm:pi-timer
+  - npm:pi-backup
 
-Run /reload to activate packages
+Reload pi?  [Yes] [No]
+```
+
+For more than 3 packages, you'll be asked to confirm:
+```
+Register all 5 unregistered packages?
+[Register all] [Choose which to register] [Cancel]
 ```
 
 ---
@@ -85,7 +92,7 @@ npm install -g pi-foo
 If you must use npm directly:
 
 ```
-/package-guard → Find unregistered packages
+/package-guard scan
 ```
 
 ### ✅ Create Your First Backup
@@ -112,7 +119,7 @@ Now your backup syncs to the cloud!
 |--------|-------|
 | Learn all features | [Usage Guide](./usage.md) |
 | Detailed install options | [Installation Guide](./installation.md) |
-| Backup best practices | [Backup Strategies](./backup-restore.md) |
+| Backup best practices | [Backup Strategies](./backup-strategies.md) |
 | Use across multiple machines | [Multi-Machine Setup](./multi-machine-setup.md) |
 | Fix common issues | [Troubleshooting](./troubleshooting.md) |
 
@@ -122,7 +129,12 @@ Now your backup syncs to the cloud!
 
 | Command | Action |
 |---------|--------|
-| `/package-guard` | Open main menu |
+| `/package-guard` | Open interactive menu |
+| `/package-guard scan` | Scan and fix unregistered packages |
+| `/package-guard backup` | Save backup to file + Gist |
+| `/package-guard restore` | Restore packages from backup |
+| `/package-guard config` | Open configuration settings |
+| `/package-guard help` | Show help text |
 | `pi install npm:pi-*` | Install package correctly |
 | `/reload` | Reload pi after registering packages |
 

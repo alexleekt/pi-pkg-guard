@@ -8,14 +8,43 @@
 
 ### `/package-guard`
 
-Opens the main package-guard menu:
+Opens the main package-guard menu. The menu is a flat list — no section headers — so arrow-key navigation is fast.
 
 | Option | Description |
 |--------|-------------|
-| **Scan** | Find unregistered npm packages and register them in pi |
+| **Scan** | Contextual: `🔧 Fix N unregistered packages` when found, otherwise `Find unregistered packages` |
 | **Backup** | Save package list to local file + optional GitHub Gist |
 | **Restore** | Selectively restore packages from backup |
-| **Settings** | Configure backup path and Gist sync |
+| **Config** | Open configuration settings (backup path, Gist, auto-sync) |
+| **Help** | Show help and usage info |
+| **Exit** | Close the menu |
+
+### In-Menu Navigation
+
+Menu items are numbered for quick reference:
+
+| # | Option | Description |
+|---|--------|-------------|
+| 1 | **Scan** | Contextual: `🔧 Fix N unregistered packages` when found, otherwise `Find unregistered packages` |
+| 2 | **Backup** | Save package list to local file + optional GitHub Gist |
+| 3 | **Restore** | Selectively restore packages from backup |
+| 4 | **Config** | Open configuration settings (backup path, Gist, auto-sync) |
+| 5 | **Help** | Show help and usage info |
+| 6 | **Exit** | Close the menu |
+
+### Subcommands
+
+For power users, subcommands bypass the menu entirely:
+
+| Subcommand | Action |
+|-----------|--------|
+| `/package-guard scan` | Scan, register, and offer to reload |
+| `/package-guard backup` | Save backup immediately |
+| `/package-guard restore` | Start restore workflow |
+| `/package-guard config` | Open configuration settings |
+| `/package-guard help` | Show help and usage info |
+
+Unknown arguments fall through to the interactive menu.
 
 ---
 
@@ -59,7 +88,7 @@ This prevents creating unregistered packages in the first place.
 
 3. Create your first Gist backup:
    ```
-   /package-guard → Backup → Create new GitHub Gist
+   /package-guard → Set up new GitHub Gist backup
    ```
 
 ### Local Backup
@@ -77,11 +106,13 @@ This file contains the list of registered pi packages and can be:
 
 ### Restoring Packages
 
-When you run `/package-guard` → Restore:
+When you run `/package-guard restore`:
 
-1. Select which backup to restore from (if multiple exist)
-2. Choose which packages to restore (checkbox selection)
-3. Confirm to register them in pi
+1. Backup is loaded (local first, then Gist fallback)
+2. Already-registered packages are filtered out
+3. For 3 or fewer packages: single confirm dialog
+4. For more than 3 packages: choose `Restore all`, `Pick individually`, or `Cancel`
+5. Selected packages are registered and an install command is shown
 
 ---
 
@@ -143,7 +174,7 @@ npm install -g pi-foo
 If you must use npm directly:
 
 ```
-/package-guard → Scan
+/package-guard scan
 ```
 
 ### 3. Keep Backups
@@ -151,7 +182,7 @@ If you must use npm directly:
 Create a Gist backup after installing new packages:
 
 ```
-/package-guard → Backup
+/package-guard backup
 ```
 
 ### 4. Check on New Machines
@@ -159,7 +190,7 @@ Create a Gist backup after installing new packages:
 When setting up pi on a new machine:
 
 ```
-/package-guard → Restore
+/package-guard restore
 ```
 
 ---

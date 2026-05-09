@@ -32,7 +32,7 @@ Feature: Interactive Menu Interface
     When I view Package Operations section
     Then I should see items:
       | item                           |
-      | Find orphaned packages         |
+      | Find unregistered packages     |
       | Save backup to file + Gist     |
       | Restore packages from backup   |
 
@@ -53,7 +53,7 @@ Feature: Interactive Menu Interface
       | Disable Gist auto-sync         |
 
   Scenario: Menu refresh after action
-    Given I select "Find orphaned packages"
+    Given I select "Find unregistered packages"
     When the action completes
     Then the menu should refresh
     And the status widget should show updated counts

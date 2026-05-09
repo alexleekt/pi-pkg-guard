@@ -15,7 +15,7 @@ import type { TranslationDict } from "./types.js";
 export const en_US_template: TranslationDict = {
 	// ========== STARTUP DETECTION ==========
 	startup: {
-		warning: "{count} orphaned pi package(s). Run /package-guard",
+		warning: "{count} unregistered pi package(s). Run /package-guard",
 	},
 
 	// ========== NPM INSTALL GUARD ==========
@@ -26,8 +26,8 @@ export const en_US_template: TranslationDict = {
 	// ========== MANUAL SCAN ==========
 	scan: {
 		success:
-			"✓ Registered {count} orphaned {count, plural, one {package} other {packages}} with pi:",
-		none: "✓ All pi packages are registered. No orphaned packages found.",
+			"✓ Registered {count} unregistered {count, plural, one {package} other {packages}} with pi:",
+		none: "✓ All pi packages are registered. No unregistered packages found.",
 		reloading: "Run /reload to activate packages",
 		error: "✗ Error scanning packages: {error}",
 	},
@@ -60,7 +60,7 @@ export const en_US_template: TranslationDict = {
 	// ========== MENU ==========
 	menu: {
 		title: "Package Guard",
-		scan: "Find orphaned packages",
+		scan: "Find unregistered packages",
 		backup: "Save backup to file + Gist",
 		restore: "Restore packages from backup",
 		changePath: "Change where backups are saved",
@@ -92,15 +92,15 @@ export const en_US_template: TranslationDict = {
 	// ========== HELP ==========
 	help: {
 		intro:
-			"Package Guard helps you manage pi extensions and prevent orphaned packages.",
-		whatAreOrphans: "What are orphaned packages?",
+			"Package Guard helps you manage pi extensions and prevent unregistered packages.",
+		whatAreOrphans: "What are unregistered packages?",
 		whatAreOrphansDesc:
-			"Orphaned packages are pi extensions installed via npm but not registered in pi's settings. They exist on your system but pi doesn't know about them.",
-		howToAvoid: "How to avoid creating orphans",
+			"Unregistered packages are pi extensions installed via npm but not registered in pi's settings. They exist on your system but pi doesn't know about them.",
+		howToAvoid: "How to avoid creating unregistered packages",
 		howToAvoidDesc:
 			"Always use 'pi install npm:package-name' instead of 'npm install -g package-name'. This ensures pi tracks your packages correctly.",
 		actions: "Available Actions",
-		scanHelp: "Scan - Find and register orphaned packages automatically",
+		scanHelp: "Scan - Find and register unregistered packages automatically",
 		backupHelp: "Backup - Save your package list locally and to GitHub Gist",
 		restoreHelp: "Restore - Selectively restore packages from backup",
 		proTips: "Pro Tips",

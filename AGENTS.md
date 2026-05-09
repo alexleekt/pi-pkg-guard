@@ -21,7 +21,7 @@
 
 - **Always use TypeScript** for all source files
 - Use strict type checking - avoid `any` types
-- Define interfaces for all data structures (PackageDiff, PiSettings, etc.)
+- Define interfaces for all data structures (PackageStatus, PiSettings, etc.)
 - Use type guards for runtime validation (isPiSettings, isBashToolInput)
 
 ### Code Organization
@@ -40,8 +40,8 @@
 | Element | Convention | Example |
 |---------|------------|---------|
 | Constants | UPPER_SNAKE_CASE | `STATUS_KEY`, `CORE_PACKAGE` |
-| Functions | camelCase | `analyzePackages()`, `syncOrphanedPackages()` |
-| Interfaces | PascalCase | `PackageDiff`, `PiSettings` |
+| Functions | camelCase | `checkRegistrationStatus()`, `registerPackages()` |
+| Interfaces | PascalCase | `PackageStatus`, `PiSettings` |
 | Type Guards | is + TypeName | `isPiSettings()`, `isBashToolInput()` |
 
 ---
@@ -129,7 +129,7 @@ function readPiSettings(): PiSettings {
 
 1. **Edit precisely** - Use Edit tool for targeted changes
 2. **Update tests** - Add/modify tests for new behavior
-3. **Run full test suite** - All 179 tests must pass
+3. **Run full test suite** - All 284 tests must pass
 4. **Run linting** - Ensure code style compliance:
    ```bash
    just check
@@ -436,7 +436,7 @@ The extension uses ICU MessageFormat for pluralization and select expressions. W
 
 ```typescript
 // ✅ DO: Use proper ICU plural syntax
-"scan.success": "✓ Registered {count} orphaned {count, plural, one {package} other {packages}} with pi:"
+"scan.success": "✓ Registered {count} unregistered {count, plural, one {package} other {packages}} with pi:"
 
 // ✅ DO: Test plural forms with count=1 and count>1
 // The i18n formatter uses a custom parser that handles nested braces

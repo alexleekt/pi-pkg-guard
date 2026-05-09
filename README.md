@@ -67,6 +67,29 @@ An **unregistered package** is a pi extension installed via npm but not register
 
 ---
 
+## Quick Commands
+
+| Command | Action |
+|---------|--------|
+| `/package-guard` | Open interactive menu |
+| `/package-guard scan` | Scan and fix unregistered packages |
+| `/package-guard backup` | Save backup (local + Gist) |
+| `/package-guard restore` | Restore packages from backup |
+| `/package-guard config` | Open configuration settings |
+
+## In-Menu Navigation
+
+Menu items are numbered for quick selection:
+
+| # | Option |
+|---|--------|
+| 1 | Scan / fix unregistered packages |
+| 2 | Save backup |
+| 3 | Restore packages |
+| 4 | Configuration settings |
+| 5 | Help |
+| 6 | Exit |
+
 ## Passive Warnings
 
 **Startup:** `3 unregistered pi package(s). Run /package-guard`
