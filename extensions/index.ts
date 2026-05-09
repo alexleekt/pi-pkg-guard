@@ -532,14 +532,15 @@ export function readPiSettings(): PiSettings {
 
 export function readExtensionSettings(): ExtensionSettings {
 	// Try dedicated extension settings file first (isolated from pi core)
+	let dedicatedConfig: ExtensionSettings | null = null;
 	try {
 		const content = readFileSync(EXTENSION_SETTINGS_PATH, "utf-8");
 		const parsed = JSON.parse(content) as unknown;
 		if (isExtensionSettings(parsed)) {
-			return parsed;
+			dedicatedConfig = parsed;
 		}
 	} catch {
-		// Dedicated file doesn't exist or is invalid - try legacy location
+		// Dedicated file doesn't exist or is invalid
 	}
 
 	// Legacy fallback: read from settings.json
@@ -548,23 +549,25 @@ export function readExtensionSettings(): ExtensionSettings {
 		const config = (settings as Record<string, unknown>)[CONFIG_KEY];
 
 		if (isExtensionSettings(config)) {
-			// Migrate to dedicated file for future isolation
-			try {
-				ensureExtensionSettingsDir();
-				writeFileSync(
-					EXTENSION_SETTINGS_PATH,
-					`${JSON.stringify(config, null, 2)}\n`,
-				);
-			} catch {
-				// Migration failure is non-critical
+			// If dedicated file is empty/minimal, migrate legacy config
+			if (!dedicatedConfig || Object.keys(dedicatedConfig).length === 0) {
+				try {
+					ensureExtensionSettingsDir();
+					writeFileSync(
+						EXTENSION_SETTINGS_PATH,
+						`${JSON.stringify(config, null, 2)}\n`,
+					);
+				} catch {
+					// Migration failure is non-critical
+				}
+				return config;
 			}
-			return config;
 		}
 	} catch {
 		// Ignore
 	}
 
-	return {};
+	return dedicatedConfig || {};
 }
 
 function ensureExtensionSettingsDir(): void {

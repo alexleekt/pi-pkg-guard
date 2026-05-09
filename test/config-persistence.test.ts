@@ -169,6 +169,41 @@ describe("extension settings isolation", () => {
 		assert.strictEqual(config.gistId, "dedicated123def4567890123456789012");
 	});
 
+	it("falls back to legacy when dedicated file is empty", async () => {
+		const home = createTempHome();
+
+		// Create empty dedicated file (simulates pre-migration state)
+		writeFileSync(
+			join(home, ".pi", "agent", "pi-pkg-guard.json"),
+			JSON.stringify({}),
+		);
+		writeFileSync(
+			join(home, ".pi", "agent", "settings.json"),
+			JSON.stringify({
+				packages: ["npm:pi-foo"],
+				"pi-pkg-guard": {
+					gistId: "legacy123def456789012345678901234",
+					gistEnabled: true,
+				},
+			}),
+		);
+
+		const mod = await loadModule(home);
+		const config = mod.readExtensionSettings();
+
+		// Should recover gist from legacy settings.json and migrate it
+		assert.strictEqual(config.gistId, "legacy123def456789012345678901234");
+		assert.strictEqual(config.gistEnabled, true);
+
+		// Verify the dedicated file was updated with the migrated config
+		const dedicatedContent = readFileSync(
+			join(home, ".pi", "agent", "pi-pkg-guard.json"),
+			"utf-8",
+		);
+		const dedicated = JSON.parse(dedicatedContent);
+		assert.strictEqual(dedicated.gistId, "legacy123def456789012345678901234");
+	});
+
 	it("falls back to empty config when neither file exists", async () => {
 		const home = createTempHome();
 
