@@ -1034,6 +1034,7 @@ async function executeBackup(ctx: ExtensionCommandContext): Promise<void> {
 	const config = readExtensionSettings();
 	const data = createPackageSnapshot();
 	const backupPath = config.backupPath || DEFAULT_BACKUP_PATH;
+	const ghInstalled = isGhInstalled();
 
 	ctx.ui.setWorkingMessage("Saving backup...");
 
@@ -1051,10 +1052,15 @@ async function executeBackup(ctx: ExtensionCommandContext): Promise<void> {
 	let gistError: string | null = null;
 
 	if (config.gistId && config.gistEnabled !== false) {
-		ctx.ui.setWorkingMessage("Syncing to GitHub Gist...");
-		const result = await syncGistBackup(config.gistId, data);
-		gistSuccess = result.success;
-		gistError = result.error || null;
+		if (!ghInstalled) {
+			gistError =
+				"GitHub CLI (gh) is not installed. Install it from https://cli.github.com";
+		} else {
+			ctx.ui.setWorkingMessage("Syncing to GitHub Gist...");
+			const result = await syncGistBackup(config.gistId, data);
+			gistSuccess = result.success;
+			gistError = result.error || null;
+		}
 	}
 
 	ctx.ui.setWorkingMessage();
@@ -1076,6 +1082,14 @@ async function executeBackup(ctx: ExtensionCommandContext): Promise<void> {
 		);
 	} else if (localError) {
 		ctx.ui.notify(`✗ Failed to save backup:\n${localError}`, "error");
+	}
+
+	// Warn once if gh is missing and user has gist configured
+	if (!ghInstalled && config.gistId && config.gistEnabled !== false) {
+		ctx.ui.notify(
+			"⚠ GitHub CLI (gh) not found. Gist features are disabled. Install from https://cli.github.com",
+			"warning",
+		);
 	}
 }
 
@@ -1318,7 +1332,7 @@ async function executeConfig(ctx: ExtensionCommandContext): Promise<void> {
 			!config.gistId && ghInstalled ? "Connect to existing Gist" : "",
 			config.gistId && ghInstalled ? "Switch to a different Gist" : "",
 			config.gistId && ghInstalled ? "Remove Gist backup" : "",
-			config.gistId
+			config.gistId && ghInstalled
 				? `${config.gistEnabled === false ? "Enable" : "Disable"} automatic Gist sync`
 				: "",
 			"",

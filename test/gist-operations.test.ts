@@ -110,6 +110,50 @@ describe("gist operation - gh CLI availability checks", () => {
 		assert.strictEqual(result.success, false);
 		assert.ok(result.error?.includes("GitHub CLI"));
 	});
+
+	it("backup warns when gist configured but gh not installed", () => {
+		const config = { gistId: "abc123", gistEnabled: true };
+		const isGhInstalled = false;
+
+		const shouldWarn =
+			!isGhInstalled && config.gistId && config.gistEnabled !== false;
+
+		assert.strictEqual(shouldWarn, true);
+	});
+
+	it("backup does not warn when gist not configured", () => {
+		const config = {
+			gistId: undefined as string | undefined,
+			gistEnabled: true,
+		};
+		const isGhInstalled = false;
+
+		const shouldWarn = Boolean(
+			!isGhInstalled && config.gistId && config.gistEnabled !== false,
+		);
+
+		assert.strictEqual(shouldWarn, false);
+	});
+
+	it("backup does not warn when gist sync disabled", () => {
+		const config = { gistId: "abc123", gistEnabled: false };
+		const isGhInstalled = false;
+
+		const shouldWarn =
+			!isGhInstalled && config.gistId && config.gistEnabled !== false;
+
+		assert.strictEqual(shouldWarn, false);
+	});
+
+	it("backup does not warn when gh is installed", () => {
+		const config = { gistId: "abc123", gistEnabled: true };
+		const isGhInstalled = true;
+
+		const shouldWarn =
+			!isGhInstalled && config.gistId && config.gistEnabled !== false;
+
+		assert.strictEqual(shouldWarn, false);
+	});
 });
 
 describe("gist operation - ID extraction from URLs", () => {

@@ -94,12 +94,22 @@ describe("config menu conditional options", () => {
 		assert.strictEqual(showDelete, true);
 	});
 
-	it("shows toggle_sync when gist configured", () => {
+	it("shows toggle_sync when gist configured and gh installed", () => {
 		const config = { gistId: "abc123", gistEnabled: true };
+		const ghInstalled = true;
 
-		const showToggle = !!config.gistId;
+		const showToggle = !!config.gistId && ghInstalled;
 
 		assert.strictEqual(showToggle, true);
+	});
+
+	it("hides toggle_sync when gist configured but gh not installed", () => {
+		const config = { gistId: "abc123", gistEnabled: true };
+		const ghInstalled = false;
+
+		const showToggle = !!config.gistId && ghInstalled;
+
+		assert.strictEqual(showToggle, false);
 	});
 
 	it("shows sync_disabled status when gistEnabled is false", () => {
