@@ -12,11 +12,10 @@ Opens the main package-guard menu. The menu is a flat list — no section header
 
 | Option | Description |
 |--------|-------------|
-| **Scan** | Contextual: `🔧 Fix N unregistered packages` when found, otherwise `Find unregistered packages` |
-| **Backup** | Save package list to local file + optional GitHub Gist |
+| **Scan** | Contextual: `🔧 Register N` when found, otherwise `Scan` |
+| **Backup** | Save to local file + optional GitHub Gist |
 | **Restore** | Selectively restore packages from backup |
-| **Config** | Open configuration settings (backup path, Gist, auto-sync) |
-| **Help** | Show help and usage info |
+| **Config** | Backup path, Gist, and sync settings |
 | **Exit** | Close the menu |
 
 ### In-Menu Navigation
@@ -25,12 +24,11 @@ Menu items are numbered for quick reference:
 
 | # | Option | Description |
 |---|--------|-------------|
-| 1 | **Scan** | Contextual: `🔧 Fix N unregistered packages` when found, otherwise `Find unregistered packages` |
-| 2 | **Backup** | Save package list to local file + optional GitHub Gist |
+| 1 | **Scan** | Contextual: `🔧 Register N` when found, otherwise `Scan` |
+| 2 | **Backup** | Save to local file + optional GitHub Gist |
 | 3 | **Restore** | Selectively restore packages from backup |
-| 4 | **Config** | Open configuration settings (backup path, Gist, auto-sync) |
-| 5 | **Help** | Show help and usage info |
-| 6 | **Exit** | Close the menu |
+| 4 | **Config** | Backup path, Gist, and sync settings |
+| 5 | **Exit** | Close the menu |
 
 ### Subcommands
 

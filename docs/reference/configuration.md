@@ -72,10 +72,10 @@ Under the `pi-pkg-guard` key:
 
 **Type:** `boolean`  
 **Default:** `true` (when `gistId` is set)  
-**Description:** Enable or disable automatic Gist sync
+**Description:** Enable or disable Gist backup sync
 
 **Behavior:**
-- When `true`: Every local backup also syncs to Gist
+- When `true`: Every local backup also pushes to your GitHub Gist
 - When `false`: Only local backup is created
 - Undefined (when no gist): Gist options not shown
 
@@ -112,7 +112,7 @@ Under the `pi-pkg-guard` key:
 ```
 /package-guard → Change where backups are saved
 /package-guard → Set up new GitHub Gist backup
-/package-guard → Enable/Disable Gist auto-sync
+/package-guard → Configure Gist backup sync
 ```
 
 Or use the dedicated config subcommand:

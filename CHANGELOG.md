@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-05-09
+
+### Added
+
+- **Menu Loop Helper**: `runMenuLoop()` abstraction eliminates duplication between main and nested menus
+- **Gist Submenu**: `executeGistConfig()` consolidates all Gist operations into a single "Gist..." entry
+- **Orphaned Package Cleanup**: `cleanupOrphanedPackages()` removes packages from settings that are neither installed locally nor available on npm; parallelized with 5-concurrency batching
+- **NPM Existence Cache**: `packageExistsOnNpm()` with 24h TTL cache for registry lookups; safe fallback on network errors
+- **Package Cleanup Tests**: `test/package-cleanup.test.ts` with 6 test scenarios
+
+### Changed
+
+- **Menu Strings Simplified**:
+  - Main menu: 6 items → 5 items (removed Help; still accessible via `/package-guard help` subcommand)
+  - Config submenu: 7 items → max 3 items (Gist options collapsed into "Gist..." submenu)
+  - "Auto-sync" terminology eliminated everywhere; replaced with "backup on/off"
+  - Scan label: "🔧 Fix N unregistered packages" → "🔧 Register N"
+  - Backup label: "Save backup to file + Gist" → "Backup"
+  - Config label: "Configuration settings" → "Config"
+  - Gist labels shortened: "Create new Gist" → "Create Gist", "Connect existing Gist" → "Connect Gist", etc.
+- **Widget Format**: Compact single-line status: `📦 12 │ 🔧 2 │ 💾 local │ ☁️ abc123 ⏳on`
+- **Startup Status**: `3 packages to register. Run /package-guard`
+
+### Fixed
+
+- Widget now clears consistently on all exit paths (Escape key and Exit selection)
+- `gistEnabled` state resets correctly when clearing Gist connection via empty input
+- Config widget shows consistent "☁️ not configured" / "⏸️ off" when no Gist is set
+
+### Documentation
+
+- Updated all menu references across 12 documentation files
+- Translation template updated with simplified labels
+
 ## [0.11.0] - 2026-05-05
 
 ### Added

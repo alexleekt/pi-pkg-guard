@@ -9,11 +9,7 @@ import { describe, it } from "node:test";
 
 describe("menu structure and sections", () => {
 	it("has flat menu without section headers", () => {
-		const options = [
-			"1. Scan for unregistered packages",
-			"2. Save backup",
-			"3. Restore packages",
-		];
+		const options = ["1. Scan", "2. Backup", "3. Restore"];
 		// Numbered for quick in-menu navigation
 		assert.ok(options.every((o) => /^\d\.\s/.test(o)));
 	});
@@ -35,19 +31,18 @@ describe("menu structure and sections", () => {
 });
 
 describe("simplified menu has single config entry", () => {
-	it("shows single Configuration settings item regardless of config state", () => {
+	it("shows single Config item regardless of config state", () => {
 		const options = [
 			"1. Scan",
-			"2. Save backup",
+			"2. Backup packages",
 			"3. Restore",
 			"",
-			"4. Configuration settings",
+			"4. Config",
 			"",
-			"5. Help",
-			"6. Exit",
+			"5. Exit",
 		].filter(Boolean);
 
-		assert.ok(options.includes("4. Configuration settings"));
+		assert.ok(options.includes("4. Config"));
 		assert.ok(!options.includes("Set up new GitHub Gist backup"));
 		assert.ok(!options.includes("Enable automatic Gist sync"));
 	});
@@ -112,29 +107,29 @@ describe("config menu conditional options", () => {
 		assert.strictEqual(showToggle, false);
 	});
 
-	it("shows sync_disabled status when gistEnabled is false", () => {
+	it("shows backup off status when gistEnabled is false", () => {
 		const config = { gistId: "abc123", gistEnabled: false };
 
-		const status = config.gistEnabled === false ? "disabled" : "enabled";
+		const status = config.gistEnabled === false ? "off" : "on";
 
-		assert.strictEqual(status, "disabled");
+		assert.strictEqual(status, "off");
 	});
 
-	it("shows sync_enabled status by default", () => {
+	it("shows backup on status by default", () => {
 		const config: { gistId: string; gistEnabled?: boolean } = {
 			gistId: "abc123",
 		}; // gistEnabled undefined
 
-		const status = config.gistEnabled === false ? "disabled" : "enabled";
+		const status = config.gistEnabled === false ? "off" : "on";
 
-		assert.strictEqual(status, "enabled");
+		assert.strictEqual(status, "on");
 	});
 });
 
 describe("menu selection handling", () => {
 	it("exits on undefined choice", () => {
 		const choice: string | undefined = undefined;
-		const exitOption = "6. Exit";
+		const exitOption = "5. Exit";
 
 		const shouldExit = choice === undefined || choice === exitOption;
 
@@ -142,8 +137,8 @@ describe("menu selection handling", () => {
 	});
 
 	it("exits on exit option", () => {
-		const choice = "6. Exit";
-		const exitOption = "6. Exit";
+		const choice = "5. Exit";
+		const exitOption = "5. Exit";
 
 		const shouldExit = choice === undefined || choice === exitOption;
 
@@ -151,8 +146,8 @@ describe("menu selection handling", () => {
 	});
 
 	it("continues on valid menu selection", () => {
-		const choice = "1. Scan for unregistered packages" as string;
-		const exitOption = "6. Exit" as string;
+		const choice = "1. Scan" as string;
+		const exitOption = "5. Exit" as string;
 
 		const shouldExit = choice === undefined || choice === exitOption;
 
@@ -162,8 +157,8 @@ describe("menu selection handling", () => {
 
 describe("menu action routing", () => {
 	it("routes scan choice to executeScan", () => {
-		const choice = "1. Scan for unregistered packages" as string;
-		const scanLabel = "1. Scan for unregistered packages" as string;
+		const choice = "1. Scan" as string;
+		const scanLabel = "1. Scan" as string;
 
 		const isScan = choice === scanLabel;
 
@@ -171,8 +166,8 @@ describe("menu action routing", () => {
 	});
 
 	it("routes backup choice to executeBackup", () => {
-		const choice = "2. Save backup to file + Gist" as string;
-		const backupLabel = "2. Save backup to file + Gist" as string;
+		const choice = "2. Backup" as string;
+		const backupLabel = "2. Backup" as string;
 
 		const isBackup = choice === backupLabel;
 
@@ -180,26 +175,17 @@ describe("menu action routing", () => {
 	});
 
 	it("routes restore choice to executeRestore", () => {
-		const choice = "3. Restore packages from backup" as string;
-		const restoreLabel = "3. Restore packages from backup" as string;
+		const choice = "3. Restore" as string;
+		const restoreLabel = "3. Restore" as string;
 
 		const isRestore = choice === restoreLabel;
 
 		assert.strictEqual(isRestore, true);
 	});
 
-	it("routes help choice to showHelp", () => {
-		const choice = "5. Show help and usage info";
-		const helpLabel = "5. Show help and usage info";
-
-		const isHelp = choice === helpLabel;
-
-		assert.strictEqual(isHelp, true);
-	});
-
 	it("routes config choice to executeConfig", () => {
-		const choice = "4. Configuration settings";
-		const configLabel = "4. Configuration settings";
+		const choice = "4. Config";
+		const configLabel = "4. Config";
 
 		const isConfig = choice === configLabel;
 
@@ -208,33 +194,19 @@ describe("menu action routing", () => {
 });
 
 describe("contextual scan labels", () => {
-	it("shows fix label when unregistered packages exist", () => {
+	it("shows register label when unregistered packages exist", () => {
 		const unregisteredCount = 3;
 		const hasUnregistered = true;
-		const label = hasUnregistered
-			? `🔧 Fix ${unregisteredCount} unregistered packages`
-			: "Find unregistered packages";
+		const label = hasUnregistered ? `🔧 Register ${unregisteredCount}` : "Scan";
 
-		assert.strictEqual(label, "🔧 Fix 3 unregistered packages");
+		assert.strictEqual(label, "🔧 Register 3");
 	});
 
 	it("shows generic label when no unregistered packages", () => {
 		const hasUnregistered = false;
-		const label = hasUnregistered
-			? "🔧 Fix 0 unregistered packages"
-			: "Find unregistered packages";
+		const label = hasUnregistered ? "🔧 Register 0" : "Scan";
 
-		assert.strictEqual(label, "Find unregistered packages");
-	});
-
-	it("uses singular form for one unregistered package", () => {
-		const unregisteredCount = 1;
-		const hasUnregistered = true;
-		const label = hasUnregistered
-			? `🔧 Fix ${unregisteredCount} unregistered ${unregisteredCount === 1 ? "package" : "packages"}`
-			: "Find unregistered packages";
-
-		assert.strictEqual(label, "🔧 Fix 1 unregistered package");
+		assert.strictEqual(label, "Scan");
 	});
 });
 
@@ -314,50 +286,55 @@ describe("scan batch sizing logic", () => {
 describe("status widget display patterns", () => {
 	it("shows registered package count", () => {
 		const registeredCount = 5;
-		const widgetText = `${registeredCount} registered`;
+		const widgetText = `📦 ${registeredCount}`;
 
-		assert.ok(widgetText.includes("5 registered"));
+		assert.ok(widgetText.includes("📦 5"));
 	});
 
 	it("shows unregistered package count", () => {
 		const unregisteredCount = 2;
-		const widgetText = `${unregisteredCount} unregistered`;
+		const widgetText = `🔧 ${unregisteredCount}`;
 
-		assert.ok(widgetText.includes("2 unregistered"));
+		assert.ok(widgetText.includes("🔧 2"));
 	});
 
-	it("shortens home directory to ~ in display", () => {
-		const homeDir = "/home/user";
-		const currentPath = "/home/user/.pi/agent/backup.json";
+	it("shows local indicator for default backup path", () => {
+		const defaultPath = "/home/user/.pi/agent/package-guard-backup.json";
+		const currentPath = "/home/user/.pi/agent/package-guard-backup.json";
 
-		const displayPath = currentPath.startsWith(homeDir)
-			? `~${currentPath.slice(homeDir.length)}`
-			: currentPath;
+		const pathDisplay = currentPath === defaultPath ? "local" : "custom";
 
-		assert.strictEqual(displayPath, "~/.pi/agent/backup.json");
+		assert.strictEqual(pathDisplay, "local");
 	});
 
-	it("shows gist URL when configured", () => {
+	it("shows custom indicator for non-default backup path", () => {
+		const defaultPath = "/home/user/.pi/agent/package-guard-backup.json";
+		const currentPath = "/tmp/my-backup.json";
+
+		const pathDisplay = currentPath === defaultPath ? "local" : "custom";
+
+		assert.strictEqual(pathDisplay, "custom");
+	});
+
+	it("shows gist id when configured", () => {
 		const gistId = "abc123def456";
-		const gistDisplay = gistId
-			? `☁️ https://gist.github.com/${gistId}`
-			: "☁️ not configured";
+		const gistDisplay = gistId ? `☁️ ${gistId}` : "☁️ not configured";
 
-		assert.ok(gistDisplay.includes("gist.github.com"));
 		assert.ok(gistDisplay.includes(gistId));
+		assert.ok(!gistDisplay.includes("gist.github.com"));
 	});
 
-	it("shows sync enabled indicator", () => {
+	it("shows backup on indicator", () => {
 		const gistEnabled = true as boolean;
-		const syncDisplay = gistEnabled === false ? "⏸️" : "⏳";
+		const syncDisplay = gistEnabled === false ? "⏸️ off" : "⏳ on";
 
-		assert.strictEqual(syncDisplay, "⏳");
+		assert.strictEqual(syncDisplay, "⏳ on");
 	});
 
-	it("shows sync disabled indicator", () => {
+	it("shows backup off indicator", () => {
 		const gistEnabled = false;
-		const syncDisplay = gistEnabled === false ? "⏸️" : "⏳";
+		const syncDisplay = gistEnabled === false ? "⏸️ off" : "⏳ on";
 
-		assert.strictEqual(syncDisplay, "⏸️");
+		assert.strictEqual(syncDisplay, "⏸️ off");
 	});
 });

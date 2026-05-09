@@ -1,4 +1,4 @@
-import { exec, execSync } from "node:child_process";
+import { exec, execSync, spawnSync } from "node:child_process";
 
 import {
 	mkdirSync,
@@ -55,6 +55,13 @@ let npmPrefixCacheTime = 0;
 
 // Keyword regex cache for isGlobalPiInstall
 export const keywordRegexCache = new Map<string, RegExp>();
+
+// npm existence cache (24h TTL) — prevents repeated registry lookups
+const NPM_EXISTENCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const npmExistenceCache = new Map<
+	string,
+	{ exists: boolean; expiresAt: number }
+>();
 
 // Package Snapshot Schema URL (for backup validation)
 const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/earendil-works/pi-mono/v${EXTENSION_VERSION}/packages/pi-pkg-guard/schema/package-snapshot.json`;
@@ -413,6 +420,67 @@ export function normalizePackageName(pkg: string): string {
 	return pkg.startsWith(NPM_PREFIX) ? pkg.slice(NPM_PREFIX.length) : pkg;
 }
 
+/**
+ * Check if a package exists on the npm registry.
+ * Returns false only on confirmed 404; treats network errors as "exists" to be safe.
+ * Uses spawnSync with array args to avoid shell injection.
+ * Results are cached for 24 hours.
+ */
+function _packageExistsOnNpmImpl(packageName: string): boolean {
+	// Check cache first
+	const cached = npmExistenceCache.get(packageName);
+	if (cached && Date.now() < cached.expiresAt) {
+		return cached.exists;
+	}
+
+	const result = spawnSync("npm", ["view", packageName, "version"], {
+		encoding: "utf-8",
+		timeout: 10000,
+		stdio: "pipe",
+	});
+
+	let exists: boolean;
+	if (result.status === 0) {
+		exists = true;
+	} else {
+		const stderr = result.stderr || "";
+		// Only consider missing if it's a confirmed 404
+		exists = !stderr.includes("E404");
+		// Network/auth errors: assume package exists to avoid false removals
+	}
+
+	npmExistenceCache.set(packageName, {
+		exists,
+		expiresAt: Date.now() + NPM_EXISTENCE_CACHE_TTL_MS,
+	});
+	return exists;
+}
+
+// Overridable implementation for testability
+let packageExistsOnNpmImpl = _packageExistsOnNpmImpl;
+
+export function packageExistsOnNpm(packageName: string): boolean {
+	return packageExistsOnNpmImpl(packageName);
+}
+
+/**
+ * Override the npm existence checker (for tests only).
+ */
+export function _setPackageExistsChecker(
+	fn: (packageName: string) => boolean,
+): void {
+	packageExistsOnNpmImpl = fn;
+}
+
+/**
+ * Async version for use in async contexts.
+ */
+export async function packageExistsOnNpmAsync(
+	packageName: string,
+): Promise<boolean> {
+	return packageExistsOnNpmImpl(packageName);
+}
+
 // =============================================================================
 // NPM Operations
 // =============================================================================
@@ -508,6 +576,15 @@ export function getNpmGlobalPackages(): string[] {
 		}
 		return [];
 	}
+}
+
+/**
+ * Pre-seed the npm global cache (for tests only).
+ * Avoids expensive `npm list -g` calls in test environments.
+ */
+export function _resetNpmGlobalCache(packages: string[]): void {
+	npmGlobalCache = packages;
+	npmGlobalCacheTime = Date.now() + NPM_CACHE_TTL_MS;
 }
 
 // =============================================================================
@@ -665,6 +742,50 @@ export function registerPackages(status: PackageStatus): void {
 	}
 
 	writePiSettings(settings);
+}
+
+/**
+ * Remove orphaned packages from settings.json.
+ * A package is orphaned if it's registered with npm: prefix but neither
+ * installed locally nor available on the npm registry.
+ * Checks are parallelized (max 5 concurrent) to avoid blocking the event loop.
+ * Returns the list of removed package refs.
+ */
+export async function cleanupOrphanedPackages(): Promise<string[]> {
+	const settings = readPiSettings();
+	if (!settings.packages || settings.packages.length === 0) {
+		return [];
+	}
+
+	const localPackages = new Set(getNpmGlobalPackages());
+	const npmPackages = settings.packages.filter((p) => p.startsWith(NPM_PREFIX));
+
+	// Batch npm checks in parallel, capped at 5 concurrent to avoid rate limits
+	const CONCURRENCY = 5;
+	const orphaned: string[] = [];
+
+	for (let i = 0; i < npmPackages.length; i += CONCURRENCY) {
+		const batch = npmPackages.slice(i, i + CONCURRENCY);
+		const results = await Promise.all(
+			batch.map(async (pkg) => {
+				const normalized = normalizePackageName(pkg);
+				// If installed locally, it's valid
+				if (localPackages.has(normalized)) return null;
+				// If available on npm, it's valid (user may install later)
+				const exists = await packageExistsOnNpmAsync(normalized);
+				return exists ? null : pkg;
+			}),
+		);
+		orphaned.push(...results.filter((p): p is string => p !== null));
+	}
+
+	if (orphaned.length > 0) {
+		const removed = new Set(orphaned);
+		settings.packages = settings.packages.filter((p) => !removed.has(p));
+		writePiSettings(settings);
+	}
+
+	return orphaned;
 }
 
 // =============================================================================
@@ -899,9 +1020,19 @@ async function executeScan(
 	ctx: ExtensionCommandContext,
 	options: { offerReload?: boolean } = {},
 ): Promise<void> {
+	// Clean up orphaned packages first for accurate counts
+	const orphaned = await cleanupOrphanedPackages();
+
 	ctx.ui.setWorkingMessage("Scanning npm global packages...");
 	const status = checkRegistrationStatus();
 	ctx.ui.setWorkingMessage();
+
+	if (orphaned.length > 0) {
+		ctx.ui.notify(
+			`⚠ Removed ${orphaned.length} orphaned ${orphaned.length === 1 ? "package" : "packages"} from settings:\n${orphaned.map((p) => `  - ${p}`).join("\n")}`,
+			"warning",
+		);
+	}
 
 	if (!status.hasUnregistered) {
 		ctx.ui.notify(
@@ -1313,171 +1444,246 @@ async function executeRestore(ctx: ExtensionCommandContext): Promise<void> {
 	}
 }
 
+// =============================================================================
+// Menu Loop Helper
+// =============================================================================
+
+interface MenuItem {
+	label: string;
+	action: () => Promise<void>;
+	exit?: boolean;
+}
+
+/**
+ * Run an interactive menu loop with widget status and consistent exit behavior.
+ * Clears the widget on Escape or Exit selection.
+ */
+async function runMenuLoop(
+	ctx: ExtensionCommandContext,
+	title: string,
+	widgetKey: string,
+	getWidgetLines: () => string[],
+	getMenuItems: () => MenuItem[],
+): Promise<void> {
+	while (true) {
+		ctx.ui.setWidget(widgetKey, getWidgetLines());
+
+		const items = getMenuItems();
+		const choice = await ctx.ui.select(
+			title,
+			items.map((i) => i.label),
+		);
+
+		if (choice === undefined) {
+			ctx.ui.setWidget(widgetKey, []);
+			return;
+		}
+
+		const item = items.find((i) => i.label === choice);
+		if (!item) {
+			continue;
+		}
+
+		if (item.exit) {
+			ctx.ui.setWidget(widgetKey, []);
+			return;
+		}
+
+		await item.action();
+	}
+}
+
+async function executeGistConfig(
+	ctx: ExtensionCommandContext,
+	config: ExtensionSettings,
+): Promise<void> {
+	await runMenuLoop(
+		ctx,
+		"Configure Gist",
+		"pi-pkg-guard:gist",
+		() => [],
+		() => {
+			const items: MenuItem[] = [];
+
+			if (!config.gistId) {
+				items.push({
+					label: `${items.length + 1}. Create Gist`,
+					action: async () => {
+						ctx.ui.setWorkingMessage("Creating new gist...");
+						const result = await createGist();
+						ctx.ui.setWorkingMessage();
+						if (result.success && result.gistId) {
+							config.gistId = result.gistId;
+							config.gistEnabled = true;
+							writeExtensionSettings(config);
+							ctx.ui.notify(
+								`Created and configured gist ${result.gistId}`,
+								"info",
+							);
+						} else {
+							ctx.ui.notify(
+								`Failed to create gist: ${result.error || ""}`,
+								"error",
+							);
+						}
+					},
+				});
+				items.push({
+					label: `${items.length + 1}. Connect Gist`,
+					action: async () => {
+						const gistInput = await ctx.ui.input(
+							"GitHub Gist ID or URL (empty to clear):",
+							"",
+						);
+						if (gistInput !== undefined) {
+							const trimmed = gistInput.trim();
+							config.gistId =
+								trimmed === "" ? undefined : extractGistId(trimmed);
+							config.gistEnabled = config.gistId ? true : undefined;
+							writeExtensionSettings(config);
+							ctx.ui.notify(
+								config.gistId ? "Gist configured" : "Gist cleared",
+								"info",
+							);
+						}
+					},
+				});
+			} else {
+				items.push({
+					label: `${items.length + 1}. Switch Gist`,
+					action: async () => {
+						const gistInput = await ctx.ui.input(
+							"GitHub Gist ID or URL (empty to clear):",
+							config.gistId ? `https://gist.github.com/${config.gistId}` : "",
+						);
+						if (gistInput !== undefined) {
+							const trimmed = gistInput.trim();
+							config.gistId =
+								trimmed === "" ? undefined : extractGistId(trimmed);
+							if (!config.gistId) {
+								config.gistEnabled = undefined;
+							}
+							writeExtensionSettings(config);
+							ctx.ui.notify(
+								config.gistId ? "Gist configured" : "Gist cleared",
+								"info",
+							);
+						}
+					},
+				});
+				items.push({
+					label: `${items.length + 1}. Disconnect`,
+					action: async () => {
+						if (!config.gistId) {
+							ctx.ui.notify("No gist configured", "warning");
+							return;
+						}
+						const confirmed = await ctx.ui.confirm(
+							"Disconnect Gist?",
+							`This will remove gist ${config.gistId} from Package Guard. The Gist itself will remain on GitHub.`,
+						);
+						if (confirmed) {
+							config.gistId = undefined;
+							config.gistEnabled = undefined;
+							writeExtensionSettings(config);
+							ctx.ui.notify("Gist disconnected", "info");
+						}
+					},
+				});
+			}
+
+			items.push({
+				label: `${items.length + 1}. Back`,
+				action: async () => {},
+				exit: true,
+			});
+
+			return items;
+		},
+	);
+}
+
 async function executeConfig(ctx: ExtensionCommandContext): Promise<void> {
 	const config = readExtensionSettings();
 	const ghInstalled = isGhInstalled();
 
-	while (true) {
-		const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
-		const displayPath = currentPath.startsWith(homedir())
-			? `~${currentPath.slice(homedir().length)}`
-			: currentPath;
-
-		const options = [
-			"═══ Current Settings ═══",
-			`Backup path: ${displayPath}`,
-			`Gist: ${config.gistId ? `☁️ ${config.gistId}` : "not configured"}`,
-			`Auto-sync: ${config.gistEnabled === false ? "disabled" : "enabled"}`,
-			"",
-			"═══ Actions ═══",
-			"Change where backups are saved",
-			!config.gistId && ghInstalled ? "Set up new GitHub Gist backup" : "",
-			!config.gistId && ghInstalled ? "Connect to existing Gist" : "",
-			config.gistId && ghInstalled ? "Switch to a different Gist" : "",
-			config.gistId && ghInstalled ? "Remove Gist backup" : "",
-			config.gistId && ghInstalled
-				? `${config.gistEnabled === false ? "Enable" : "Disable"} automatic Gist sync`
-				: "",
-			"",
-			"Exit",
-		].filter(Boolean);
-
-		const choice = await ctx.ui.select(
-			"Package Guard — Configuration",
-			options,
-		);
-
-		if (choice === undefined || choice === "Exit") {
-			return;
-		}
-
-		if (choice === "Change where backups are saved") {
-			const newPath = await ctx.ui.input("Backup file path:", currentPath);
-			if (newPath !== undefined) {
-				const expandedPath = newPath.startsWith("~")
-					? `${homedir()}${newPath.slice(1)}`
-					: newPath;
-				config.backupPath = expandedPath;
-				writeExtensionSettings(config);
-				ctx.ui.notify("Backup path set", "info");
-			}
-		} else if (choice === "Set up new GitHub Gist backup") {
-			if (!ghInstalled) {
-				ctx.ui.notify("GitHub CLI (gh) not found. Install it first.", "error");
-			} else {
-				ctx.ui.setWorkingMessage("Creating new gist...");
-				const result = await createGist();
-				ctx.ui.setWorkingMessage();
-				if (result.success && result.gistId) {
-					config.gistId = result.gistId;
-					config.gistEnabled = true;
-					writeExtensionSettings(config);
-					ctx.ui.notify(`Created and configured gist ${result.gistId}`, "info");
-				} else {
-					ctx.ui.notify(
-						`Failed to create gist: ${result.error || ""}`,
-						"error",
-					);
-				}
-			}
-		} else if (choice === "Connect to existing Gist") {
-			if (!ghInstalled) {
-				ctx.ui.notify("GitHub CLI (gh) not found. Install it first.", "error");
-			} else {
-				const gistInput = await ctx.ui.input(
-					"GitHub Gist ID or URL (empty to clear):",
-					"",
-				);
-				if (gistInput !== undefined) {
-					const trimmed = gistInput.trim();
-					config.gistId = trimmed === "" ? undefined : extractGistId(trimmed);
-					writeExtensionSettings(config);
-					ctx.ui.notify(
-						config.gistId ? "Gist configured" : "Gist cleared",
-						"info",
-					);
-				}
-			}
-		} else if (choice === "Switch to a different Gist") {
-			if (!ghInstalled) {
-				ctx.ui.notify("GitHub CLI (gh) not found. Install it first.", "error");
-			} else {
-				const gistInput = await ctx.ui.input(
-					"GitHub Gist ID or URL (empty to clear):",
-					config.gistId ? `https://gist.github.com/${config.gistId}` : "",
-				);
-				if (gistInput !== undefined) {
-					const trimmed = gistInput.trim();
-					config.gistId = trimmed === "" ? undefined : extractGistId(trimmed);
-					writeExtensionSettings(config);
-					ctx.ui.notify(
-						config.gistId ? "Gist configured" : "Gist cleared",
-						"info",
-					);
-				}
-			}
-		} else if (choice === "Remove Gist backup") {
-			if (!config.gistId) {
-				ctx.ui.notify("No gist configured to delete", "warning");
-			} else {
-				const confirmed = await ctx.ui.confirm(
-					"Delete gist?",
-					`This will permanently delete gist ${config.gistId}. This cannot be undone.`,
-				);
-				if (confirmed) {
-					ctx.ui.setWorkingMessage("Deleting gist...");
-					const result = await deleteGist(config.gistId);
-					ctx.ui.setWorkingMessage();
-					if (result.success) {
-						config.gistId = undefined;
-						config.gistEnabled = undefined;
-						writeExtensionSettings(config);
-						ctx.ui.notify("Gist deleted and configuration cleared", "info");
-					} else {
-						ctx.ui.notify(
-							`Failed to delete gist: ${result.error || ""}`,
-							"error",
+	await runMenuLoop(
+		ctx,
+		"Config",
+		"pi-pkg-guard:status",
+		() => {
+			const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
+			const displayPath = currentPath.startsWith(homedir())
+				? `~${currentPath.slice(homedir().length)}`
+				: currentPath;
+			return [
+				`💾 ${displayPath} │ ${config.gistId ? `☁️ ${config.gistId}` : "☁️ not configured"} │ ${config.gistId ? (config.gistEnabled === false ? "⏸️ off" : "⏳ on") : "⏸️ off"}`,
+			];
+		},
+		() => {
+			const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
+			const items: MenuItem[] = [
+				{
+					label: "1. Backup path",
+					action: async () => {
+						const newPath = await ctx.ui.input(
+							"Backup file path:",
+							currentPath,
 						);
-					}
-				}
+						if (newPath !== undefined) {
+							const expandedPath = newPath.startsWith("~")
+								? `${homedir()}${newPath.slice(1)}`
+								: newPath;
+							config.backupPath = expandedPath;
+							writeExtensionSettings(config);
+							ctx.ui.notify("Backup path set", "info");
+						}
+					},
+				},
+			];
+
+			if (ghInstalled) {
+				items.push({
+					label: `${items.length + 1}. Gist...`,
+					action: async () => {
+						await executeGistConfig(ctx, config);
+					},
+				});
 			}
-		} else if (
-			choice ===
-			`${config.gistEnabled === false ? "Enable" : "Disable"} automatic Gist sync`
-		) {
-			config.gistEnabled = config.gistEnabled === false;
-			writeExtensionSettings(config);
-			ctx.ui.notify(
-				config.gistEnabled ? "Gist sync enabled" : "Gist sync disabled",
-				"info",
-			);
-		}
-	}
+
+			items.push({
+				label: `${items.length + 1}. Exit`,
+				action: async () => {},
+				exit: true,
+			});
+
+			return items;
+		},
+	);
 }
 
 async function showHelp(ctx: ExtensionCommandContext): Promise<void> {
 	// Use pi's UI notification for proper formatting and overflow handling
 	const helpLines = [
 		"═══ Quick Commands ═══",
-		"/package-guard scan     - Scan and fix unregistered packages",
-		"/package-guard backup   - Save backup locally and to Gist",
-		"/package-guard restore  - Restore packages from backup",
+		"/package-guard scan     - Scan and register unregistered packages",
+		"/package-guard backup   - Backup packages",
+		"/package-guard restore  - Restore from backup",
 		"/package-guard config   - Open configuration settings",
 		"/package-guard help     - Show this help",
 		"",
 		"═══ Interactive Menu ═══",
-		"1. Find unregistered packages - Scan and register unregistered packages",
-		"2. Save backup to file + Gist - Backup locally and optionally to GitHub Gist",
-		"3. Restore packages from backup - Register packages from backup file",
-		"4. Configuration settings - Manage backup path, Gist, and auto-sync",
-		"5. Show help and usage info",
-		"6. Exit",
+		"1. Scan - Find and register missing packages",
+		"2. Backup - Save to local file + GitHub Gist",
+		"3. Restore - Register packages from backup",
+		"4. Config - Backup path, Gist, sync settings",
+		"5. Exit",
 		"",
 		"═══ Pro Tips ═══",
 		"• Use 'pi install npm:package' instead of 'npm install -g package'",
 		"• Unregistered packages are installed but not tracked by pi",
 		"• Gist backup keeps your packages synced across machines",
-		"• Run 'Find unregistered packages' after installing via npm directly",
+		"• Run Scan after installing packages via npm",
 	];
 
 	ctx.ui.notify(helpLines.join("\n"), "info");
@@ -1494,11 +1700,21 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 
 	pi.on("session_start", async (event, ctx) => {
 		if (event.reason !== "startup") return;
+
+		// Clean up orphaned packages that don't exist on npm
+		const orphaned = await cleanupOrphanedPackages();
+		if (orphaned.length > 0) {
+			ctx.ui.notify(
+				`⚠ Removed ${orphaned.length} orphaned ${orphaned.length === 1 ? "package" : "packages"} from settings:\n${orphaned.map((p) => `  - ${p}`).join("\n")}`,
+				"warning",
+			);
+		}
+
 		const status = checkRegistrationStatus();
 		if (status.hasUnregistered) {
 			ctx.ui.setStatus(
 				STATUS_KEY,
-				`${status.unregistered.length} ${status.unregistered.length === 1 ? "unregistered pi package" : "unregistered pi packages"}. Run /package-guard`,
+				`${status.unregistered.length} package${status.unregistered.length === 1 ? "" : "s"} to register. Run /package-guard`,
 			);
 		}
 	});
@@ -1534,90 +1750,60 @@ export default function piPkgGuardExtension(pi: ExtensionAPI) {
 				return;
 			}
 
-			while (true) {
-				// Read fresh config each iteration
-				const config = readExtensionSettings();
-				const registeredPackages = getRegisteredPackages();
-				const status = checkRegistrationStatus();
-				const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
-
-				// Update STATUS ZONE (widget - non-selectable)
-				const gistDisplay = config.gistId
-					? `☁️ https://gist.github.com/${config.gistId}`
-					: "☁️ not configured";
-				const syncDisplay = config.gistEnabled === false ? "⏸️" : "⏳";
-				// Show full path with home directory shortened to ~ for readability
-				const displayPath = currentPath.startsWith(homedir())
-					? `~${currentPath.slice(homedir().length)}`
-					: currentPath;
-				// When few unregistered packages exist, show their names for clarity
-				const unregisteredSummary =
-					status.hasUnregistered && status.unregistered.length <= 3
-						? status.unregistered.join(", ")
-						: `${status.unregistered.length} unregistered`;
-				ctx.ui.setWidget("pi-pkg-guard:status", [
-					`📦 ${registeredPackages.length} registered │ ${unregisteredSummary} │ 💾 ${displayPath} │ ${gistDisplay} │ ${syncDisplay} auto-sync`,
-				]);
-
-				// Build MENU ZONE — flat list with numbered items for quick navigation.
-				// Using a local action map keeps labels and routing in a single place,
-				// so changing display text never silently breaks dispatch.
-				const scanLabel = status.hasUnregistered
-					? `🔧 Fix ${status.unregistered.length} unregistered ${status.unregistered.length === 1 ? "package" : "packages"}`
-					: "Find unregistered packages";
-				const menuItems: { label: string; action: () => Promise<void> }[] = [
-					{
-						label: `1. ${scanLabel}`,
-						action: () => executeScan(ctx, { offerReload: true }),
-					},
-					{
-						label: "2. Save backup to file + Gist",
-						action: () => executeBackup(ctx),
-					},
-					{
-						label: "3. Restore packages from backup",
-						action: () => executeRestore(ctx),
-					},
-					{
-						label: "4. Configuration settings",
-						action: () => executeConfig(ctx),
-					},
-					{
-						label: "5. Show help and usage info",
-						action: () => showHelp(ctx),
-					},
-					{
-						label: "6. Exit",
-						action: async () => {
-							ctx.ui.setWidget("pi-pkg-guard:status", []);
-							// Returning void ends the while loop via return below
+			await runMenuLoop(
+				ctx,
+				"Package Guard",
+				"pi-pkg-guard:status",
+				() => {
+					const config = readExtensionSettings();
+					const registeredPackages = getRegisteredPackages();
+					const status = checkRegistrationStatus();
+					const currentPath = config.backupPath || DEFAULT_BACKUP_PATH;
+					const gistDisplay = config.gistId
+						? `☁️ ${config.gistId}`
+						: "☁️ not configured";
+					const syncDisplay = config.gistEnabled === false ? "⏸️ off" : "⏳ on";
+					const pathDisplay =
+						currentPath === DEFAULT_BACKUP_PATH ? "local" : "custom";
+					const unregisteredSummary = status.hasUnregistered
+						? status.unregistered.length <= 3
+							? `🔧 ${status.unregistered.join(", ")}`
+							: `🔧 ${status.unregistered.length}`
+						: "✓";
+					return [
+						`📦 ${registeredPackages.length} │ ${unregisteredSummary} │ 💾 ${pathDisplay} │ ${gistDisplay} ${syncDisplay}`,
+					];
+				},
+				() => {
+					const status = checkRegistrationStatus();
+					const scanLabel = status.hasUnregistered
+						? `🔧 Register ${status.unregistered.length}`
+						: "Scan";
+					return [
+						{
+							label: `1. ${scanLabel}`,
+							action: () => executeScan(ctx, { offerReload: true }),
 						},
-					},
-				];
-
-				const choice = await ctx.ui.select(
-					"Package Guard",
-					menuItems.map((i) => i.label),
-				);
-
-				if (choice === undefined) {
-					ctx.ui.setWidget("pi-pkg-guard:status", []);
-					return;
-				}
-
-				const item = menuItems.find((i) => i.label === choice);
-				if (!item) {
-					// Unknown choice (should not happen with ctx.ui.select)
-					continue;
-				}
-
-				if (item.label === "6. Exit") {
-					return;
-				}
-
-				await item.action();
-				// Loop continues, menu reappears with fresh state
-			}
+						{
+							label: "2. Backup",
+							action: () => executeBackup(ctx),
+						},
+						{
+							label: "3. Restore",
+							action: () => executeRestore(ctx),
+						},
+						{
+							label: "4. Config",
+							action: () => executeConfig(ctx),
+						},
+						{
+							label: "5. Exit",
+							action: async () => {},
+							exit: true,
+						},
+					];
+				},
+			);
 		},
 	});
 

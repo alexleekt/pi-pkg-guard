@@ -98,7 +98,7 @@ If you must use npm directly:
 ### ✅ Create Your First Backup
 
 ```
-/package-guard → Save backup to file + Gist
+/package-guard → Backup
 ```
 
 This creates a recovery point for your extension setup.
@@ -107,7 +107,7 @@ This creates a recovery point for your extension setup.
 
 1. Install GitHub CLI: `brew install gh`
 2. Login: `gh auth login`
-3. In pi: `/package-guard → Set up new GitHub Gist backup`
+3. In pi: `/package-guard → Config → Gist... → Create Gist`
 
 Now your backup syncs to the cloud!
 
@@ -131,7 +131,7 @@ Now your backup syncs to the cloud!
 |---------|--------|
 | `/package-guard` | Open interactive menu |
 | `/package-guard scan` | Scan and fix unregistered packages |
-| `/package-guard backup` | Save backup to file + Gist |
+| `/package-guard backup` | Save backup (local + Gist) |
 | `/package-guard restore` | Restore packages from backup |
 | `/package-guard config` | Open configuration settings |
 | `/package-guard help` | Show help text |

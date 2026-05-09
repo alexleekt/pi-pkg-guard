@@ -1,6 +1,6 @@
 {
 	"name": "pi-pkg-guard",
-	"version": "0.11.0",
+	"version": "0.12.0",
 	"description": "Guards against unregistered pi packages — installed via npm but not registered in pi's settings",
 	"type": "module",
 	"license": "MIT",

@@ -34,7 +34,7 @@ An **unregistered package** is a pi extension installed via npm but not register
 
 - **Startup check** — Warns if unregistered packages found
 - **npm guard** — Warns when you run `npm install -g pi-*`
-- **Scan & Sync** — Find and register unregistered packages automatically
+- **Scan & Register** — Find and register unregistered packages automatically
 - **Backup** — Save to local file + optional GitHub Gist (with versioned schema)
 - **Restore** — Selectively restore packages from backup with automatic legacy migration
 - **Schema Validation** — Strict backup validation with `$schema` field for future-proofing
@@ -83,16 +83,15 @@ Menu items are numbered for quick selection:
 
 | # | Option |
 |---|--------|
-| 1 | Scan / fix unregistered packages |
-| 2 | Save backup |
-| 3 | Restore packages |
-| 4 | Configuration settings |
-| 5 | Help |
-| 6 | Exit |
+| 1 | Scan / Register |
+| 2 | Backup |
+| 3 | Restore |
+| 4 | Config |
+| 5 | Exit |
 
 ## Passive Warnings
 
-**Startup:** `3 unregistered pi package(s). Run /package-guard`
+**Startup:** `3 packages to register. Run /package-guard`
 
 **npm install:** `Use 'pi install npm:pi-foo' instead of 'npm install -g'`
 

@@ -21,16 +21,16 @@ Feature: GitHub Gist Cloud Backup
     Then the backup should sync to GitHub Gist
     And I should see: "✓ Synced to GitHub Gist"
 
-  Scenario: Disable auto-sync
-    Given Gist sync is enabled
-    When I select "Disable Gist auto-sync"
+  Scenario: Disable backup sync
+    Given Gist backup sync is enabled
+    When I disconnect the Gist
     Then future backups should save locally only
     And the Gist ID should be preserved
 
-  Scenario: Enable auto-sync
-    Given Gist sync is disabled
+  Scenario: Enable backup sync
+    Given Gist backup sync is disabled
     And a Gist ID is configured
-    When I select "Enable Gist auto-sync"
+    When I connect a Gist
     Then future backups should sync to Gist automatically
 
   Scenario: Switch Gist

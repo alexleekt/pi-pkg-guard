@@ -18,15 +18,14 @@ Then I should see a status widget showing:
   - Number of unregistered packages
   - Current backup path
   - Gist configuration status
-  - Auto-sync status
+  - Backup sync status
 
 Given the menu is displayed
 When I view the options
 Then I should see clearly sectioned menu items:
-  ═══ Package Operations ═══
-  - Find unregistered packages
-  - Save backup to file + Gist
-  - Restore packages from backup
+  - 🔧 Register N (contextual)
+  - Backup
+  - Restore
   
   ═══ Configuration ═══
   - Change where backups are saved

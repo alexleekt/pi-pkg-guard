@@ -15,7 +15,7 @@ import type { TranslationDict } from "./types.js";
 export const en_US_template: TranslationDict = {
 	// ========== STARTUP DETECTION ==========
 	startup: {
-		warning: "{count} unregistered pi package(s). Run /package-guard",
+		warning: "{count} package(s) to register. Run /package-guard",
 	},
 
 	// ========== NPM INSTALL GUARD ==========
@@ -38,8 +38,8 @@ export const en_US_template: TranslationDict = {
 		gistSuccess: "✓ Synced to GitHub Gist: {gistUrl}",
 		gistCreateSuccess: "✓ Created GitHub Gist: {gistUrl}",
 		gistDeleteSuccess: "✓ Deleted GitHub Gist and removed configuration",
-		gistDisabled: "✓ Gist auto-sync disabled",
-		gistEnabled: "✓ Gist auto-sync enabled",
+		gistDisabled: "✓ Gist backup sync off",
+		gistEnabled: "✓ Gist backup sync on",
 		error: "✗ Backup failed: {error}",
 	},
 
@@ -60,17 +60,17 @@ export const en_US_template: TranslationDict = {
 	// ========== MENU ==========
 	menu: {
 		title: "Package Guard",
-		scan: "Find unregistered packages",
-		backup: "Save backup to file + Gist",
-		restore: "Restore packages from backup",
-		changePath: "Change where backups are saved",
-		gistCreate: "Set up new GitHub Gist backup",
-		gistUse: "Connect to existing Gist",
-		gistChange: "Switch to a different Gist",
-		gistDelete: "Remove Gist backup",
-		gistDisable: "Disable Gist auto-sync",
-		gistEnable: "Enable Gist auto-sync",
-		help: "Show help and usage info",
+		scan: "Scan",
+		backup: "Backup",
+		restore: "Restore",
+		changePath: "Backup path",
+		gistCreate: "Create Gist",
+		gistUse: "Connect Gist",
+		gistChange: "Switch Gist",
+		gistDelete: "Disconnect",
+		gistDisable: "Gist backup off",
+		gistEnable: "Gist backup on",
+		help: "Help",
 		exit: "Exit",
 		sectionOperations: "═══ Package Operations ═══",
 		sectionConfig: "═══ Configuration ═══",

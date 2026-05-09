@@ -60,8 +60,8 @@ When I run "Save backup to file + Gist"
 Then the backup should sync to GitHub Gist automatically
 And I should see: "✓ Synced to GitHub Gist: https://gist.github.com/{gistId}"
 
-Given Gist sync is enabled
-When I disable automatic sync via menu
+Given Gist backup sync is enabled
+When I disconnect the Gist via menu
 Then future backups should save locally only
 And I can re-enable sync later without reconfiguring the Gist ID
 

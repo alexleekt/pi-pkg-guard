@@ -29,7 +29,7 @@ Default location is already configured:
 ### Backup Command
 
 ```
-/package-guard → Save backup to file + Gist
+/package-guard → Backup
 ```
 
 (This creates local backup even without Gist configured)
@@ -37,7 +37,7 @@ Default location is already configured:
 ### Restore
 
 ```
-/package-guard → Restore packages from backup
+/package-guard → Restore
 ```
 
 ---
@@ -59,7 +59,7 @@ gh auth login
 ### Setup
 
 ```
-/package-guard → Set up new GitHub Gist backup
+/package-guard → Config → Gist... → Create Gist
 ```
 
 ### How It Works
@@ -73,12 +73,12 @@ gh auth login
 
 **Machine A (Work):**
 ```
-/package-guard → Save backup to file + Gist
+/package-guard → Backup
 ```
 
 **Machine B (Home):**
 ```
-/package-guard → Restore packages from backup
+/package-guard → Restore
 ```
 
 ---
@@ -91,7 +91,7 @@ gh auth login
 
 1. Set custom backup path to your dotfiles:
    ```
-   /package-guard → Change where backups are saved
+   /package-guard → Config → Backup path
    Enter: ~/.dotfiles/pi-packages.json
    ```
 
@@ -201,7 +201,7 @@ When restoring from a legacy backup:
 ### "Backup file not found"
 
 **Cause:** No backup created yet  
-**Fix:** Run `/package-guard → Save backup to file + Gist`
+**Fix:** Run `/package-guard → Backup`
 
 ### "Legacy Backup Detected" message
 

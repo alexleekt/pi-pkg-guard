@@ -26,7 +26,7 @@ Then I should see: "✓ All pi packages are registered. No unregistered packages
 ```
 
 ### Technical Notes
-- **Auto-sync:** Unregistered packages are automatically registered without additional confirmation
+- **Auto-register:** Small batches (≤3 packages) are registered without additional confirmation
 - **Format:** Registered with `npm:` prefix (`npm:pi-foo` not just `pi-foo`)
 - **Reload Hint:** User notified to run `/reload` to activate packages
 - **Implementation:** `executeScan()` calls `checkRegistrationStatus()` → `registerPackages()`

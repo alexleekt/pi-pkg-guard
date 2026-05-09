@@ -28,7 +28,7 @@ This epic covers the backup and recovery mechanisms that allow users to save the
 ### GitHub Gist Backup
 - Syncs to public GitHub Gist
 - Requires GitHub CLI (`gh`)
-- Auto-sync toggle option
+- Gist backup sync toggle
 
 ## Technical Summary
 

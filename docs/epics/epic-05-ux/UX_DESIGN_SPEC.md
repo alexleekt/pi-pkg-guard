@@ -133,20 +133,23 @@ User opens /package-guard
 
 ### Status Widget Format
 ```
-📦 N registered │ 💾 filename │ ☁️ Gist: XXX... │ ⏳ Auto-sync: ON
+📦 N │ status │ 💾 path │ ☁️ gistId ⏳on
 ```
 - **Icons**: Single emoji prefix for quick visual scanning
+- **Status segment**: `🔧 N` when packages need registering, `✓` when all ok
+- **Path segment**: `local` (default) or `custom` (non-default path)
+- **Gist segment**: `☁️ gistId ⏳on` when synced, `☁️ none ⏸️off` when disconnected
 - **Delimiters**: `│` (box-drawing character) separates sections
-- **Truncation**: Long paths/gist IDs truncated with `...`
+- **Truncation**: Long gist IDs truncated with `...`
 - **Layout**: Single line if possible, wrap to 2 lines if narrow terminal
 
 ### Menu Format
 ```typescript
 const options = [
   "═══ Package Operations ═══",
-  "Find unregistered packages",
-  "Save backup to file + Gist",
-  "Restore packages from backup",
+  "🔧 Register N",
+  "Backup",
+  "Restore",
   "",
   "═══ Configuration ═══",
   "Change where backups are saved",

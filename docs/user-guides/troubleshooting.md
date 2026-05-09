@@ -160,7 +160,7 @@ Look for `"pi-pkg-guard"` section.
 **Recovery:**
 1. Find Gist on GitHub: https://gist.github.com/
 2. Copy Gist ID from URL
-3. Use `/package-guard config` → `Switch to a different Gist`
+3. Use `/package-guard config` → `Gist...` → `Connect Gist`
 
 ---
 

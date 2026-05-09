@@ -24,8 +24,8 @@ Feature: Configuration Persistence
       | key         | value                            |
       | gistId      | abc123def456...                  |
 
-  Scenario: Persist auto-sync setting
-    Given Gist auto-sync is enabled
+  Scenario: Persist backup sync setting
+    Given Gist backup sync is enabled
     When I exit pi
     And I restart pi
     Then the configuration should contain:

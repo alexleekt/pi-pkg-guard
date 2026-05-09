@@ -243,7 +243,7 @@ Restores packages from backup with selective filtering.
 async function executeConfig(ctx: ExtensionCommandContext): Promise<void>
 ```
 
-Opens a dedicated configuration menu for backup path, Gist, and auto-sync settings.
+Opens a dedicated configuration menu for backup path, Gist, and backup sync settings.
 
 ### selectPackages
 

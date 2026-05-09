@@ -82,7 +82,7 @@ After installation, verify it's working:
 /package-guard
 ```
 
-You should see the package-guard menu with options for Scan, Backup, Restore, and Configuration. You can also use subcommands like `/package-guard scan` or `/package-guard config`.
+You should see the package-guard menu with options for Scan, Backup, Restore, Config, and Exit. You can also use subcommands like `/package-guard scan` or `/package-guard config`.
 
 ---
 

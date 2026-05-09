@@ -87,15 +87,15 @@ Work on multiple machines? Keep your pi extensions synchronized with GitHub Gist
 /package-guard → Restore packages from backup
 ```
 
-### Pro Tip: Auto-Sync Toggle
+### Pro Tip: Gist Backup Sync Toggle
 
-Enable auto-sync to skip the manual sync step:
+Enable backup sync to skip the manual sync step:
 
 ```
-/package-guard config → Enable automatic Gist sync
+/package-guard config → Configure Gist... → Create new Gist
 ```
 
-Now every backup automatically syncs to Gist.
+Now every backup automatically pushes to your GitHub Gist.
 
 ---
 

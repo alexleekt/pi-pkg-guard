@@ -16,7 +16,7 @@ Feature: Interactive Menu Interface
       | orphaned count      |
       | backup path         |
       | Gist status         |
-      | auto-sync status    |
+      | backup sync status  |
 
   Scenario: Menu sections are clearly separated
     Given I run "/package-guard"
@@ -44,13 +44,13 @@ Feature: Interactive Menu Interface
       | Set up new GitHub Gist backup  |
 
   Scenario: Contextual Gist options when configured
-    Given Gist is configured with auto-sync enabled
+    Given Gist is configured with backup sync enabled
     When the menu is displayed
     Then I should see:
       | item                           |
       | Switch to a different Gist     |
       | Remove Gist backup             |
-      | Disable Gist auto-sync         |
+      | Disconnect Gist              |
 
   Scenario: Menu refresh after action
     Given I select "Find unregistered packages"
