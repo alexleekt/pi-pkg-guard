@@ -129,7 +129,7 @@ See [i18n Guide](../reference/i18n-guide.md) for details.
 
 ## Questions?
 
-- Open an issue: https://github.com/alexleekt/pi-pkg-guard/issues
+- Open an issue: https://github.com/earendil-works/pi-mono/issues
 - Check existing documentation
 
 ---

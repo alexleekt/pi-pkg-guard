@@ -22,7 +22,7 @@ Then no warning should be displayed in the status area
 
 ### Technical Notes
 - **Detection Pattern:** `/^pi-|-pi$|\/pi-/` + keywords: `pi-coding-agent`, `pi-extension`, `pi-package`
-- **Exclusions:** `@mariozechner/pi-coding-agent` (core), `pi-pkg-guard` itself
+- **Exclusions:** `@earendil-works/pi-coding-agent` (core), `pi-pkg-guard` itself
 - **Performance:** NPM cache with 5-second TTL prevents repeated exec calls
 - **Implementation:** `analyzePackages()`, `pi.on("session_start")` → `ctx.ui.setStatus(STATUS_KEY, ...)`
 

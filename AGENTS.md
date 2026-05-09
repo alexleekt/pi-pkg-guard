@@ -1,8 +1,8 @@
 # Agent Guidelines: pi-pkg-guard
 
 **Scope:** Pi extension development and maintenance  
-**Last Updated:** 2026-04-23  
-**Version:** 1.2
+**Last Updated:** 2026-05-06  
+**Version:** 1.3
 
 ---
 
@@ -239,7 +239,7 @@ git push origin v0.3.0
 
 **Note:** Manual GitHub Release creation is not needed - it's automated when you push the tag.
 
-Monitor at: https://github.com/alexleekt/pi-pkg-guard/actions
+Monitor at: https://github.com/earendil-works/pi-mono/actions
 
 **Fallback:** If Trusted Publishing isn't available, use classic token-based auth by adding `NPM_TOKEN` secret and uncommenting `NODE_AUTH_TOKEN` in publish.yml.
 
@@ -291,6 +291,48 @@ When preparing a release:
    git tag -a v0.9.0 -m "Release v0.9.0: naming refactor, docs reorg, test coverage"
    git push origin v0.9.0
    ```
+
+### Pre-Release Verification (CRITICAL)
+
+**Always run full checks BEFORE tagging.** CI failures after tagging require force-pushing the tag:
+
+```bash
+# Step 0: Run full check suite (catches 90% of CI failures)
+just check
+
+# This runs:
+# - biome format (catches package.json indentation, import sorting)
+# - biome lint
+# - tests (all must pass)
+# - TypeScript typecheck
+```
+
+**Common pre-release failures:**
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Biome format error | `jq` changed package.json to 2-space indent | `just fix` then commit |
+| Import sorting | New test files have unsorted imports | `just fix` then commit |
+| Test failure | Logic error or mock issue | Fix code, commit |
+| Type error | TypeScript compilation failed | Fix types, commit |
+
+**Recovery if CI fails after tagging:**
+
+```bash
+# 1. Fix the issue locally
+just fix
+jj commit -m "style: fix biome formatting"
+
+# 2. Move tag to fixed commit
+git tag -d vX.Y.X
+git tag -a vX.Y.X -m "Release vX.Y.X" <new-commit-hash>
+git push --force origin vX.Y.X
+
+# 3. Monitor new workflow run
+gh run list --repo earendil-works/pi-mono
+```
+
+**Why this matters:** Force-pushing tags is messy and can confuse npm registry caching. Better to catch issues before tagging.
 
 ### CI/CD Debugging (Important!)
 

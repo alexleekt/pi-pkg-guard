@@ -298,7 +298,7 @@ release version="":
     echo "  2. ✅ Publish to npm with provenance"
     echo "  3. ✅ Create GitHub Release with auto-generated notes"
     echo ""
-    echo "Monitor progress at: https://github.com/alexleekt/pi-pkg-guard/actions"
+    echo "Monitor progress at: https://github.com/earendil-works/pi-mono/actions"
 
 # Alias for release (backward compatibility)
 # GitHub Releases are now created automatically by the workflow

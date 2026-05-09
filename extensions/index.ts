@@ -14,7 +14,7 @@ const { version: EXTENSION_VERSION } = require("../package.json");
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { initializeI18n, t } from "./i18n/index.js";
 
 // Initialize i18n with detected locale
@@ -28,7 +28,7 @@ const SETTINGS_PATH = `${homedir()}/.pi/agent/settings.json`;
 const NPM_PREFIX = "npm:";
 const STATUS_KEY = "ext:pi-pkg-guard:v1";
 const CONFIG_KEY = "pi-pkg-guard";
-const CORE_PACKAGE = "@mariozechner/pi-coding-agent";
+const CORE_PACKAGE = "@earendil-works/pi-coding-agent";
 const SELF_PACKAGE = "pi-pkg-guard";
 const DEFAULT_BACKUP_PATH = `${homedir()}/.pi/agent/package-guard-backup.json`;
 
@@ -46,15 +46,15 @@ let npmGlobalCache: string[] | null = null;
 let npmGlobalCacheTime = 0;
 
 // Package Snapshot Schema URL (for backup validation)
-const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v${EXTENSION_VERSION}/schema/package-snapshot.json`;
+const PACKAGE_SNAPSHOT_SCHEMA_URL = `https://raw.githubusercontent.com/earendil-works/pi-mono/v${EXTENSION_VERSION}/packages/pi-pkg-guard/schema/package-snapshot.json`;
 
 // Accept schema URLs from any version tag, main branch, or refs/tags pattern
 const ALLOWED_SNAPSHOT_SCHEMA_PATTERNS = [
 	PACKAGE_SNAPSHOT_SCHEMA_URL,
-	/^https:\/\/raw\.githubusercontent\.com\/alexleekt\/pi-pkg-guard\/v\d+\.\d+\.\d+\/schema\/package-snapshot\.json$/,
-	/^https:\/\/raw\.githubusercontent\.com\/alexleekt\/pi-pkg-guard\/refs\/tags\/v\d+\.\d+\.\d+\/schema\/package-snapshot\.json$/,
-	"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/refs/heads/main/schema/package-snapshot.json",
-	"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/main/schema/package-snapshot.json",
+	/^https:\/\/raw\.githubusercontent\.com\/earendil-works\/pi-mono\/v\d+\.\d+\.\d+\/packages\/pi-pkg-guard\/schema\/package-snapshot\.json$/,
+	/^https:\/\/raw\.githubusercontent\.com\/earendil-works\/pi-mono\/refs\/tags\/v\d+\.\d+\.\d+\/packages\/pi-pkg-guard\/schema\/package-snapshot\.json$/,
+	"https://raw.githubusercontent.com/earendil-works/pi-mono/refs/heads/main/packages/pi-pkg-guard/schema/package-snapshot.json",
+	"https://raw.githubusercontent.com/earendil-works/pi-mono/main/packages/pi-pkg-guard/schema/package-snapshot.json",
 ];
 
 // =============================================================================

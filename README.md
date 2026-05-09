@@ -78,7 +78,8 @@ An **unregistered package** is a pi extension installed via npm but not register
 ## Development
 
 ```bash
-git clone https://github.com/alexleekt/pi-pkg-guard.git
+git clone https://github.com/earendil-works/pi-mono.git
+cd packages/pi-pkg-guard
 cd pi-pkg-guard
 npm install
 

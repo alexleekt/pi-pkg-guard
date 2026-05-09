@@ -15,7 +15,7 @@
 
 ## Prerequisites
 
-- [pi coding agent](https://github.com/mariozechner/pi) installed
+- [pi coding agent](https://github.com/earendil-works/pi-mono) installed
 - Node.js >= 18.0.0
 - npm (comes with Node.js)
 

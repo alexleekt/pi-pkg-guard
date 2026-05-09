@@ -108,7 +108,7 @@ pi-pkg-guard detects pi packages by:
 
 These are **not** considered Unregistered:
 
-- `@mariozechner/pi-coding-agent` (core package)
+- `@earendil-works/pi-coding-agent` (core package)
 - `pi-pkg-guard` itself (when running via symlink in dev mode)
 - Packages without pi-related keywords
 

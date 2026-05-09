@@ -15,7 +15,7 @@
 ### Clone and Install
 
 ```bash
-git clone https://github.com/alexleekt/pi-pkg-guard.git
+git clone https://github.com/earendil-works/pi-mono.git
 cd pi-pkg-guard
 npm install
 ```

@@ -7,11 +7,12 @@
 	"author": "Alex Lee <657215+alexleekt@users.noreply.github.com>",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/alexleekt/pi-pkg-guard.git"
+		"url": "git+https://github.com/earendil-works/pi-mono.git",
+		"directory": "packages/pi-pkg-guard"
 	},
-	"homepage": "https://github.com/alexleekt/pi-pkg-guard#readme",
+	"homepage": "https://github.com/earendil-works/pi-mono/tree/main/packages/pi-pkg-guard#readme",
 	"bugs": {
-		"url": "https://github.com/alexleekt/pi-pkg-guard/issues"
+		"url": "https://github.com/earendil-works/pi-mono/issues"
 	},
 	"keywords": [
 		"pi-package",
@@ -47,8 +48,8 @@
 		"extensions": ["./extensions/index.ts"]
 	},
 	"peerDependencies": {
-		"@mariozechner/pi-coding-agent": "*",
-		"@mariozechner/pi-tui": "*"
+		"@earendil-works/pi-coding-agent": "*",
+		"@earendil-works/pi-tui": "*"
 	},
 	"engines": {
 		"node": ">=18.0.0"

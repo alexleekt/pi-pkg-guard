@@ -15,7 +15,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("accepts valid package snapshot", () => {
 		const valid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 			npmPackages: ["pi-foo", "pi-bar"],
 		};
@@ -42,7 +42,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("rejects missing timestamp", () => {
 		const invalid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			npmPackages: ["pi-foo"],
 		};
 		assert.strictEqual(isPackageSnapshot(invalid), false);
@@ -51,7 +51,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("rejects non-string timestamp", () => {
 		const invalid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: 12345,
 			npmPackages: ["pi-foo"],
 		};
@@ -61,7 +61,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("rejects missing npmPackages array", () => {
 		const invalid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 		};
 		assert.strictEqual(isPackageSnapshot(invalid), false);
@@ -70,7 +70,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("rejects non-array npmPackages", () => {
 		const invalid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 			npmPackages: "not-an-array",
 		};
@@ -80,7 +80,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("rejects npmPackages with non-string elements", () => {
 		const invalid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 			npmPackages: ["pi-foo", 123, null],
 		};
@@ -104,7 +104,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("accepts empty arrays", () => {
 		const valid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 			npmPackages: [],
 		};
@@ -114,7 +114,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("accepts with excludedPackages", () => {
 		const valid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 			npmPackages: ["pi-foo"],
 			excludedPackages: ["pi-bar"],
@@ -125,7 +125,7 @@ describe("isPackageSnapshot type guard", () => {
 	it("rejects excludedPackages with non-string elements", () => {
 		const invalid = {
 			$schema:
-				"https://raw.githubusercontent.com/alexleekt/pi-pkg-guard/v0.9.0/schema/package-snapshot.json",
+				"https://raw.githubusercontent.com/earendil-works/pi-mono/v0.9.0/packages/pi-pkg-guard/schema/package-snapshot.json",
 			timestamp: "2024-01-15T10:30:00Z",
 			npmPackages: ["pi-foo"],
 			excludedPackages: [123, "pi-bar"],

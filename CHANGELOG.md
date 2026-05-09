@@ -276,7 +276,7 @@ that are pi extensions but don't use `pi-*` or `*-pi` naming conventions.
 - **Sync Command**: `/pi-pkg-guard` - Auto-register orphaned packages in settings.json
 - **npm Guard**: Warns when bash tool runs `npm install -g pi-*` commands
 - Support for both `pi-foo` and `npm:pi-foo` package name formats
-- Exclusion of core package `@mariozechner/pi-coding-agent` from orphaned detection
+- Exclusion of core package `@earendil-works/pi-coding-agent` from orphaned detection
 - Comprehensive test suite with 179 test cases covering type guards, package analysis, regex patterns, gist utilities, and i18n validation
 - Type-safe TypeScript implementation with proper interfaces and type guards
 
@@ -287,20 +287,20 @@ that are pi extensions but don't use `pi-*` or `*-pi` naming conventions.
 - Silent failure mode for non-critical operations (never blocks pi)
 - 1-hour debounce on startup checks to avoid excessive npm list calls
 
-[Unreleased]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.9...v0.5.0
-[0.4.9]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.8...v0.4.9
-[0.4.8]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.7...v0.4.8
-[0.4.7]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.6...v0.4.7
-[0.4.6]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.5...v0.4.6
-[0.4.5]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.4...v0.4.5
-[0.4.4]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.3...v0.4.4
-[0.4.3]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.2...v0.4.3
-[0.4.2]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.1...v0.4.2
-[0.4.1]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.4.0...v0.4.1
-[0.4.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.1...v0.2.0
-[0.1.1]: https://github.com/alexleekt/pi-pkg-guard/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/alexleekt/pi-pkg-guard/releases/tag/v0.1.0
+[Unreleased]: https://github.com/earendil-works/pi-mono/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/earendil-works/pi-mono/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/earendil-works/pi-mono/compare/v0.4.9...v0.5.0
+[0.4.9]: https://github.com/earendil-works/pi-mono/compare/v0.4.8...v0.4.9
+[0.4.8]: https://github.com/earendil-works/pi-mono/compare/v0.4.7...v0.4.8
+[0.4.7]: https://github.com/earendil-works/pi-mono/compare/v0.4.6...v0.4.7
+[0.4.6]: https://github.com/earendil-works/pi-mono/compare/v0.4.5...v0.4.6
+[0.4.5]: https://github.com/earendil-works/pi-mono/compare/v0.4.4...v0.4.5
+[0.4.4]: https://github.com/earendil-works/pi-mono/compare/v0.4.3...v0.4.4
+[0.4.3]: https://github.com/earendil-works/pi-mono/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/earendil-works/pi-mono/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/earendil-works/pi-mono/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/earendil-works/pi-mono/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/earendil-works/pi-mono/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/earendil-works/pi-mono/compare/v0.1.1...v0.2.0
+[0.1.1]: https://github.com/earendil-works/pi-mono/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/earendil-works/pi-mono/releases/tag/v0.1.0
