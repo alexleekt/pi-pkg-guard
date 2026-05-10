@@ -308,8 +308,9 @@ describe("status widget display patterns", () => {
 	});
 
 	it("shows custom indicator for non-default backup path", () => {
-		const defaultPath = "/home/user/.pi/agent/package-guard-backup.json";
-		const currentPath = "/tmp/my-backup.json";
+		const defaultPath: string =
+			"/home/user/.pi/agent/package-guard-backup.json";
+		const currentPath: string = "/tmp/my-backup.json";
 
 		const pathDisplay = currentPath === defaultPath ? "local" : "custom";
 
