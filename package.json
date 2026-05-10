@@ -7,12 +7,11 @@
 	"author": "Alex Lee <657215+alexleekt@users.noreply.github.com>",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/earendil-works/pi-mono.git",
-		"directory": "packages/pi-pkg-guard"
+		"url": "git+https://github.com/alexleekt/pi-pkg-guard.git"
 	},
-	"homepage": "https://github.com/earendil-works/pi-mono/tree/main/packages/pi-pkg-guard#readme",
+	"homepage": "https://github.com/alexleekt/pi-pkg-guard#readme",
 	"bugs": {
-		"url": "https://github.com/earendil-works/pi-mono/issues"
+		"url": "https://github.com/alexleekt/pi-pkg-guard/issues"
 	},
 	"keywords": [
 		"pi-package",
